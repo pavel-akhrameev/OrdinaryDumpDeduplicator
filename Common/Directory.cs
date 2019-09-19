@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace OrdinaryDumpDeduplicator.Common
 {
@@ -15,6 +14,11 @@ namespace OrdinaryDumpDeduplicator.Common
 
         #region Constructors
 
+        public Directory(String name, Directory parentDirectory, DateTime creationDate, DateTime modificationDate)
+            : base(name, parentDirectory, creationDate, modificationDate)
+        {
+        }
+
         public Directory(
             String name,
             Directory parentDirectory,
@@ -26,11 +30,6 @@ namespace OrdinaryDumpDeduplicator.Common
         {
             this._subFolders = new HashSet<Directory>(subDirectories);
             this._files = new HashSet<File>(files);
-        }
-
-        private Directory(String name, Directory parentDirectory, DateTime creationDate, DateTime modificationDate)
-            : base(name, parentDirectory, creationDate, modificationDate)
-        {
         }
 
         #endregion

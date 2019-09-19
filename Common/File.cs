@@ -7,13 +7,13 @@ namespace OrdinaryDumpDeduplicator.Common
         private readonly ulong _size;
         private Digest _hashValue;
 
-        public File(String name, Directory parrentDirectory, DateTime creationDate, DateTime modificationDate)
-            : this(name, parrentDirectory, 0, creationDate, modificationDate)
+        public File(String name, Directory parentDirectory, DateTime creationDate, DateTime modificationDate)
+            : this(name, parentDirectory, 0, creationDate, modificationDate)
         {
         }
 
-        public File(String name, Directory parrentDirectory, ulong size, DateTime creationDate, DateTime modificationDate)
-            : base(name, parrentDirectory, creationDate, modificationDate)
+        public File(String name, Directory parentDirectory, ulong size, DateTime creationDate, DateTime modificationDate)
+            : base(name, parentDirectory, creationDate, modificationDate)
         {
             _size = size;
         }
