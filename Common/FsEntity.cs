@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace OrdinaryDumpDeduplicator.Common
 {
@@ -9,42 +7,93 @@ namespace OrdinaryDumpDeduplicator.Common
         #region Private fields
 
         private readonly String _name;
+
         private readonly Directory _parentDirectory;
 
-        private DateTime _creationDate;
-        private DateTime _modificationDate;
+        private String _path;
 
         #endregion
 
         #region Constructor
 
-        protected FsEntity(String name, Directory parentDirectory, DateTime creationDate, DateTime modificationDate)
+        protected FsEntity(String name, Directory parentDirectory)
         {
+            if (String.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("name");
+            }
+
             this._name = name;
             this._parentDirectory = parentDirectory;
-
-            this._creationDate = creationDate;
-            this._modificationDate = modificationDate;
         }
 
         #endregion
 
         #region Public properties
 
-        public String Name
+        public String Name => _name;
+
+        public Directory ParentDirectory => _parentDirectory;
+
+        public String Path
         {
             get
             {
-                return _name;
+                if (_path == null)
+                {
+                    _path = (_parentDirectory != null)
+                        ? System.IO.Path.Combine(_parentDirectory.Path, _name.ToString())
+                        : _name;
+                }
+
+                return _path;
             }
         }
 
-        public Directory ParentDirectory
+        #endregion
+
+        #region Overrides of object
+
+        public override bool Equals(object obj)
         {
-            get
+            if (obj == null)
             {
-                return _parentDirectory;
+                return false;
             }
+
+            var other = obj as FsEntity;
+            if (other == null)
+            {
+                return false;
+            }
+
+            var isEqual = this._name.Equals(other._name) &&
+                ((this._parentDirectory == null && other._parentDirectory == null) ||
+                  this._parentDirectory.Equals(other._parentDirectory));
+            return isEqual;
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = _parentDirectory != null
+                ? _name.GetHashCode() ^ _parentDirectory.GetHashCode()
+                : _name.GetHashCode();
+
+            return hashCode;
+        }
+
+        public override String ToString()
+        {
+            return this._name;
+        }
+
+        #endregion
+
+        #region Private methods
+
+        protected void SetPath(String fullPath)
+        {
+            this._path = fullPath;
         }
 
         #endregion
