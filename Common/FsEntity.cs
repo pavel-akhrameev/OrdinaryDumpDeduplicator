@@ -16,7 +16,7 @@ namespace OrdinaryDumpDeduplicator.Common
 
         #region Constructor
 
-        protected FsEntity(String name, Directory parentDirectory)
+        internal FsEntity(String name, Directory parentDirectory)
         {
             if (String.IsNullOrWhiteSpace(name))
             {
