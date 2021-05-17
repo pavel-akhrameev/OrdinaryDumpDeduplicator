@@ -7,8 +7,6 @@ namespace OrdinaryDumpDeduplicator
 {
     internal static class DataStructureHelper
     {
-        public const String FOLDER_NAME_FOR_DUPLICATES = "isolated duplicates";
-
         /// <summary>
         /// Получить директории 'duplicates found' для каждой из <paramref name="dataLocations"/>.
         /// </summary>
@@ -33,7 +31,7 @@ namespace OrdinaryDumpDeduplicator
 
         public static Boolean TryFindDirectoryForDuplicates(DataLocation dataLocation, out Directory directoryForDuplicates)
         {
-            String duplicatesFolderPath = System.IO.Path.Combine(dataLocation.Path, FOLDER_NAME_FOR_DUPLICATES);
+            String duplicatesFolderPath = System.IO.Path.Combine(dataLocation.Path, DuplicatesProcessor.FOLDER_NAME_FOR_DUPLICATES);
 
             Boolean duplicatesFolderExists = System.IO.Directory.Exists(duplicatesFolderPath);
             if (duplicatesFolderExists)
