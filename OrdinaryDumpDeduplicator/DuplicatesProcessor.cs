@@ -102,7 +102,8 @@ namespace OrdinaryDumpDeduplicator
                 Directory parentDirectory = file.ParentDirectory;
                 if (!patchesForDuplicates.ContainsKey(parentDirectory))
                 {
-                    String relativeDirectoyPath = System.IO.Path.GetRelativePath(dataLocationPath, parentDirectory.Path);
+                    //String relativeDirectoyPath = System.IO.Path.GetRelativePath(dataLocationPath, parentDirectory.Path); // Not implemented on .Net Standard and .Net Framework.
+                    String relativeDirectoyPath = FileSystemHelper.GetRelativePath(dataLocationPath, parentDirectory.Path);
                     String folderForDuplicate = System.IO.Path.Combine(folderForDuplicates, relativeDirectoyPath);
 
                     patchesForDuplicates.Add(parentDirectory, folderForDuplicate);

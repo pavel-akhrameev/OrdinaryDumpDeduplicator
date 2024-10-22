@@ -14,7 +14,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
             var ordinaryDumpDeduplicator = new OrdinaryDumpDeduplicator();
             var ordinaryDumpDeduplicatorDesktop = new OrdinaryDumpDeduplicatorDesktop(ordinaryDumpDeduplicator);
 
-            Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
