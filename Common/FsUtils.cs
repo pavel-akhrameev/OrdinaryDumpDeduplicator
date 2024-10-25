@@ -75,6 +75,10 @@ namespace OrdinaryDumpDeduplicator.Common
                     directory.AddSubDirectory(subDirectory);
                 }
             }
+            catch (System.IO.DirectoryNotFoundException directoryNotFoundEx)
+            {
+                // TODO: Log this case.
+            }
             catch (UnauthorizedAccessException)
             {
                 // TODO: Log access restriction.
@@ -89,6 +93,16 @@ namespace OrdinaryDumpDeduplicator.Common
                     allFiles.Add(file);
                     directory.AddFile(file);
                 }
+            }
+            catch (NotSupportedException notSupportedEx)
+            {
+                // Например: данный формат пути не поддерживается.
+                // TODO: Log this case.
+            }
+            catch (ArgumentException argumentEx)
+            {
+                // Например: путь содержит недопустимые знаки.
+                // TODO: Log this case.
             }
             catch (UnauthorizedAccessException)
             {
