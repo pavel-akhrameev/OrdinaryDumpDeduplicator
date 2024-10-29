@@ -23,6 +23,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
         public event Action<TreeViewItem[]> MoveToDuplicatesRequested;
         public event Action<TreeViewItem[]> DeleteDuplicatesRequested;
 
+        public event Action AboutFormRequested;
+        public event Func<Boolean> ApplicationCloseRequested;
+
         #region Public methods
 
         public void SetTreeViewItems(TreeViewItem[] treeViewItems)
@@ -223,6 +226,28 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 e.Node.ContextMenuStrip = contextMenuStrip1;
             }
             */
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void aboutOrdinaryDumpDeduplicatorToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (AboutFormRequested != null)
+            {
+                AboutFormRequested.Invoke();
+            }
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (ApplicationCloseRequested != null)
+            {
+                Boolean allowedToClose = ApplicationCloseRequested.Invoke();
+                e.Cancel = !allowedToClose;
+            }
         }
 
         #endregion

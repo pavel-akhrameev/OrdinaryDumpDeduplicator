@@ -4,6 +4,10 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>OrdinaryDumpDeduplicator.Common</AssemblyName>
     <RootNamespace>OrdinaryDumpDeduplicator.Common</RootNamespace>
+    <Copyright>Copyright © 2024 Pavel Akhrameev</Copyright>
+    <Product>OrdinaryDumpDeduplicator</Product>
+    <Authors>Pavel Akhrameev</Authors>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
 </Project>

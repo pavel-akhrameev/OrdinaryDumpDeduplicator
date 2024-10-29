@@ -15,6 +15,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
         event Action<TreeViewItem[]> MoveToDuplicatesRequested;
         event Action<TreeViewItem[]> DeleteDuplicatesRequested;
 
+        event Action AboutFormRequested;
+        event Func<Boolean> ApplicationCloseRequested;
+
         void SetTreeViewItems(TreeViewItem[] treeViewItems);
 
         void AddSessionMessage(String message);

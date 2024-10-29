@@ -6,6 +6,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
     internal class WindowsManager
     {
         private MainForm _mainForm;
+        private AboutBox _aboutBox;
 
         #region Constructor
 
@@ -16,6 +17,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         public void Initialize()
         {
             this._mainForm = new MainForm();
+            this._aboutBox = new AboutBox();
         }
 
         #endregion
@@ -36,6 +38,24 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
 
             return _mainForm;
+        }
+
+        public void ShowAboutBox()
+        {
+            if (!_aboutBox.Visible)
+            {
+                _aboutBox.ShowDialog(_mainForm);
+            }
+        }
+
+        public void HideAboutBox()
+        {
+            _aboutBox.Hide();
+        }
+
+        public void CloseAllAdditionalForms()
+        {
+            _aboutBox.Close();
         }
 
         #endregion

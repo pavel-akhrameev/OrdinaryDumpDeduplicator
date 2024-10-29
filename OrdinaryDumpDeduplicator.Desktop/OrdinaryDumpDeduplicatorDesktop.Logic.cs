@@ -28,6 +28,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
             _windowsManager.MainViewModel.MoveToDuplicatesRequested += MoveToDuplicatesRequested;
             _windowsManager.MainViewModel.DeleteDuplicatesRequested += DeleteDuplicatesRequested;
+
+            _windowsManager.MainViewModel.AboutFormRequested += AboutFormRequested;
+            _windowsManager.MainViewModel.ApplicationCloseRequested += ApplicationCloseRequested;
         }
 
         private HierarchicalObject AddDataLocationRequested(String directoryPath) // TODO !!!!!
@@ -110,6 +113,19 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
             // TODO: обновить данные в БД.
             // TODO: обновить данные на форме.
+        }
+
+        private void AboutFormRequested()
+        {
+            _windowsManager.ShowAboutBox();
+        }
+
+        private Boolean ApplicationCloseRequested()
+        {
+            Boolean allowedToClose = true;
+            _windowsManager.CloseAllAdditionalForms();
+
+            return allowedToClose;
         }
 
         private void ViewDuplicatesByHash(Boolean hideIsolatedDuplicates, Boolean doResetForm)
