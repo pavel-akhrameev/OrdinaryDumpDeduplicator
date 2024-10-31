@@ -23,22 +23,25 @@ namespace OrdinaryDumpDeduplicator.Desktop
             _windowsManager.MainViewModel.RescanRequested += RescanRequested;
             _windowsManager.MainViewModel.FindDuplicatesRequested += FindDuplicatesRequested;
 
-            _windowsManager.MainViewModel.ViewGroupsByHashRequested += ViewDuplicatesByHashRequested;
-            _windowsManager.MainViewModel.ViewGroupsByFoldersRequested += ViewDuplicatesByFoldersRequested;
+            _windowsManager.DuplicatesViewModel.ViewGroupsByHashRequested += ViewDuplicatesByHashRequested;
+            _windowsManager.DuplicatesViewModel.ViewGroupsByFoldersRequested += ViewDuplicatesByFoldersRequested;
 
-            _windowsManager.MainViewModel.MoveToDuplicatesRequested += MoveToDuplicatesRequested;
-            _windowsManager.MainViewModel.DeleteDuplicatesRequested += DeleteDuplicatesRequested;
+            _windowsManager.DuplicatesViewModel.MoveToDuplicatesRequested += MoveToDuplicatesRequested;
+            _windowsManager.DuplicatesViewModel.DeleteDuplicatesRequested += DeleteDuplicatesRequested;
 
             _windowsManager.MainViewModel.AboutFormRequested += AboutFormRequested;
             _windowsManager.MainViewModel.ApplicationCloseRequested += ApplicationCloseRequested;
         }
 
-        private HierarchicalObject AddDataLocationRequested(String directoryPath) // TODO !!!!!
+        private void AddDataLocationRequested(String directoryPath) // TODO !!!!!
         {
             DataLocation dataLocation = _ordinaryDumpDeduplicator.AddDataLocation(directoryPath);
 
-            var dataLocationObject = HierarchicalObject.Create(dataLocation, ObjectSort.None, childObjects: null, dataLocation.Path); // TODO: А каким типом будем передавать во фронт подобные объекты?
-            return dataLocationObject;
+            // TODO: А теперь надо как-то показать весь список добавленных DataLocations.
+            IMainViewModel mainViewModel = _windowsManager.MainViewModel;
+
+            var dataLocationObject = HierarchicalObject.Create(dataLocation, ObjectSort.None, childObjects: null, dataLocation.Path); // TODO: А каким типом будем передавать во фронт другие объекты?
+            mainViewModel.SetListViewItems(new List<HierarchicalObject> { dataLocationObject });
         }
 
         private void RescanRequested(IReadOnlyCollection<HierarchicalObject> dataLocationObjects)
@@ -85,7 +88,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 HierarchicalObject[] duplicatesByDirectories = _currentDuplicateReport.GroupDuplicatesByDirectories();
                 TreeViewItem[] itemsInReport = MakeTreeViewItems(duplicatesByDirectories, hideIsolatedDuplicates: false);
 
-                _windowsManager.MainViewModel.SetTreeViewItems(itemsInReport);
+                _windowsManager.DuplicatesViewModel.SetTreeViewItems(itemsInReport, resetForm: false);
+                _windowsManager.ShowDuplicatesForm();
             }
         }
 
@@ -115,19 +119,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
             // TODO: обновить данные на форме.
         }
 
-        private void AboutFormRequested()
-        {
-            _windowsManager.ShowAboutBox();
-        }
-
-        private Boolean ApplicationCloseRequested()
-        {
-            Boolean allowedToClose = true;
-            _windowsManager.CloseAllAdditionalForms();
-
-            return allowedToClose;
-        }
-
         private void ViewDuplicatesByHash(Boolean hideIsolatedDuplicates, Boolean doResetForm)
         {
             if (_currentDataLocations != null && _currentDataLocations.Count > 0)
@@ -155,7 +146,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
                 TreeViewItem[] itemsInReport = MakeTreeViewItems(objectsToView, hideIsolatedDuplicates);
 
-                _windowsManager.MainViewModel.SetTreeViewItems(itemsInReport);
+                _windowsManager.DuplicatesViewModel.SetTreeViewItems(itemsInReport, doResetForm);
+                _windowsManager.ShowDuplicatesForm();
             }
         }
 
@@ -167,6 +159,19 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
 
             _currentDataLocations.Add(dataLocation);
+        }
+
+        private void AboutFormRequested()
+        {
+            _windowsManager.ShowAboutBox();
+        }
+
+        private Boolean ApplicationCloseRequested()
+        {
+            Boolean allowedToClose = true;
+            _windowsManager.CloseAllAdditionalForms();
+
+            return allowedToClose;
         }
 
         #endregion
