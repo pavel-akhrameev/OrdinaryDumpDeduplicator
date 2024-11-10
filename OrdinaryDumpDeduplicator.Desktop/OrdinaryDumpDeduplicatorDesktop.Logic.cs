@@ -105,15 +105,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         private void DeleteDuplicatesRequested(TreeViewItem[] treeViewItems)
         {
             HierarchicalObject[] hierarchicalObjects = GetHierarchicalObjects(treeViewItems);
-            if (hierarchicalObjects.Length > 1)
-            {
-                throw new Exception(""); // TODO
-            }
-            else if (hierarchicalObjects.Length == 1)
-            {
-                HierarchicalObject hierarchicalObject = hierarchicalObjects[0];
-                _ordinaryDumpDeduplicator.DeleteDuplicate(_currentDuplicateReport, hierarchicalObject);
-            }
+            _ordinaryDumpDeduplicator.DeleteDuplicate(_currentDuplicateReport, hierarchicalObjects);
 
             // TODO: обновить данные в БД.
             // TODO: обновить данные на форме.

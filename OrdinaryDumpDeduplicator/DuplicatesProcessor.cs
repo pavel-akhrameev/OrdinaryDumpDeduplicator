@@ -126,7 +126,7 @@ namespace OrdinaryDumpDeduplicator
                 String destinationFilePath = System.IO.Path.Combine(folderPathForDuplicate, file.Name);
                 try
                 {
-                    System.IO.File.Move(file.Path, destinationFilePath);
+                    System.IO.File.Move(file.Path, destinationFilePath); // 
                 }
                 catch (System.IO.FileNotFoundException fileNotFoundEx)
                 {
@@ -139,9 +139,50 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject hierarchicalObject)
+        public void DeleteDuplicate(DuplicateReport duplicateReport, File[] filesToDelete)
         {
-            // TODO
+            IReadOnlyCollection<DataLocation> currentDataLocations = duplicateReport.DataLocations;
+            HashSet<Directory> directoriesForIsolatedDuplicates = DataStructureHelper.GetDirectoriesForIsolatedDuplicates(currentDataLocations);
+
+            // Собираем только те файлы, которые находятся в папках 'isolated duplicates'.
+            var filesSuitableForDeletion = new HashSet<File>();
+            foreach (var file in filesToDelete)
+            {
+                Boolean isFileFromIsolatedDuplicatesDir = false;
+                foreach (Directory isolatedDuplicatesDir in directoriesForIsolatedDuplicates)
+                {
+                    if (_dataController.IsFileFromDirectory(isolatedDuplicatesDir, file))
+                    {
+                        isFileFromIsolatedDuplicatesDir = true;
+                        break;
+                    }
+                }
+
+                if (isFileFromIsolatedDuplicatesDir)
+                {
+                    filesSuitableForDeletion.Add(file);
+                }
+                else
+                {
+                    throw new Exception("");
+                }
+            }
+
+            foreach (var file in filesSuitableForDeletion)
+            {
+                try
+                {
+                    System.IO.File.Delete(file.Path); // По хорошему вынести бы в отдельный класс типа FileSystemProvider
+                }
+                catch (System.IO.FileNotFoundException fileNotFoundEx)
+                {
+                    var exceptionString = fileNotFoundEx.ToString();
+                }
+                catch (Exception exception)
+                {
+                    var exceptionString = exception.ToString();
+                }
+            }
         }
 
         #endregion

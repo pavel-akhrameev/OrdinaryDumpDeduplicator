@@ -29,5 +29,7 @@ namespace OrdinaryDumpDeduplicator
         Dictionary<BlobInfo, File[]> GetDuplicatesByHash(IEnumerable<DataLocation> dataLocations);
 
         Dictionary<BlobInfo, File[]> GetDirectoryCurrentFiles(IReadOnlyCollection<Directory> directories, Boolean includeSubDirectories);
+
+        Boolean IsFileFromDirectory(Directory directory, File file);
     }
 }
