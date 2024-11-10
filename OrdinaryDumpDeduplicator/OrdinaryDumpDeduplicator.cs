@@ -10,6 +10,7 @@ namespace OrdinaryDumpDeduplicator
     {
         private readonly DuplicatesProcessor _duplicatesProcessor;
         private readonly DataControllerSimple _dataController;
+        private readonly FileSystemProvider _fileSystemProvider;
 
         private DataLocation _currentDataLocation;
 
@@ -18,7 +19,8 @@ namespace OrdinaryDumpDeduplicator
         public OrdinaryDumpDeduplicator()
         {
             this._dataController = new DataControllerSimple();
-            this._duplicatesProcessor = new DuplicatesProcessor(_dataController);
+            this._fileSystemProvider = new FileSystemProvider();
+            this._duplicatesProcessor = new DuplicatesProcessor(_dataController, _fileSystemProvider);
             this._currentDataLocation = null;
         }
 
@@ -33,10 +35,9 @@ namespace OrdinaryDumpDeduplicator
 
         public DataLocation AddDataLocation(String directoryPath)
         {
-            // TODO: check path provided.
+            _fileSystemProvider.CheckPathValid(directoryPath);
 
-            var directoryInfo = new System.IO.DirectoryInfo(directoryPath);
-            var directory = new Directory(directoryInfo.Name, parentDirectory: null, directoryPath);
+            var directory = _fileSystemProvider.GetDirectoryInfo(directoryPath, parentDirectory: null);
             _dataController.AddDirectory(directory);
 
             DataLocation dataLocation = GetDataLocation(directory);
@@ -95,13 +96,19 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public BlobInfo ComputeAndSaveBlobInfo(String path)
+        public BlobInfo ComputeAndSaveBlobInfo(String filePath)
         {
             BlobInfo blobInfo;
 
             try
             {
-                Byte[] sha1HashSum = FsUtils.ComputeSha1Hash(path, out Int64 fileLength);
+                Byte[] sha1HashSum;
+                Int64 fileLength;
+                using (System.IO.FileStream fileStream = _fileSystemProvider.GetFileStream(filePath))
+                {
+                    sha1HashSum = FsUtils.ComputeSha1Hash(fileStream, out fileLength);
+                }
+
                 blobInfo = BlobInfo.Create(fileLength, sha1HashSum);
             }
             catch (Exception ex)
@@ -143,7 +150,7 @@ namespace OrdinaryDumpDeduplicator
 
                 try
                 {
-                    var fileInfo = new System.IO.FileInfo(file.Path);
+                    System.IO.FileInfo fileInfo = _fileSystemProvider.GetFileInfo(file);
 
                     var status = FileStatus.Unknown;
                     fileState = new FileState(file, inspection, previousState: null, fileInfo.Length, status, fileInfo.CreationTime, fileInfo.LastWriteTime);

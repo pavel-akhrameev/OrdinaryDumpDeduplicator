@@ -36,11 +36,10 @@ namespace OrdinaryDumpDeduplicator.Common
             directory.AddFile(file);
         }
 
-        public static Byte[] ComputeSha1Hash(String filePath, out Int64 fileLength)
+        public static Byte[] ComputeSha1Hash(System.IO.FileStream fileStream, out Int64 fileLength)
         {
             Byte[] hashSum;
 
-            using (System.IO.FileStream fileStream = new System.IO.FileStream(filePath, System.IO.FileMode.Open))
             using (System.IO.BufferedStream bufferedStream = new System.IO.BufferedStream(fileStream))
             {
                 using (System.Security.Cryptography.SHA1 sha1Computer = System.Security.Cryptography.SHA1.Create())
