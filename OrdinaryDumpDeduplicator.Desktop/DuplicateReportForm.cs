@@ -7,6 +7,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
 {
     public partial class DuplicateReportForm : Form, IDuplicatesViewModel
     {
+        private readonly ContextMenuStrip emptyContextMenuStrip = new ContextMenuStrip();
+
         private Boolean _ignoreEventsFromControls = false;
 
         public DuplicateReportForm()
@@ -136,9 +138,24 @@ namespace OrdinaryDumpDeduplicator.Desktop
             if (e.Button == MouseButtons.Right)
             {
                 treeView1.SelectedNode = e.Node;
-            }
 
-            e.Node.ContextMenuStrip = contextMenuStrip1;
+                TreeViewItem treeViewItem = e.Node.Tag as TreeViewItem;
+                if (treeViewItem != null)
+                {
+                    moveToDuplicatesToolStripMenuItem.Enabled = treeViewItem.IsMoveable;
+                    deleteToolStripMenuItem.Enabled = treeViewItem.IsDeletable;
+
+                    e.Node.ContextMenuStrip = contextMenuStrip1;
+                }
+                else
+                {
+                    e.Node.ContextMenuStrip = emptyContextMenuStrip;
+                }
+            }
+            else
+            {
+                e.Node.ContextMenuStrip = emptyContextMenuStrip;
+            }
 
             /*
             if (e.Node.Level == 0)

@@ -196,25 +196,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
         /// <remarks>Логика преобразования <c>HierarchicalObject</c> в <c>TreeViewItem</c> с учетом признаков из .ObjectSort.</remarks>
         private static TreeViewItem MakeTreeViewItem(HierarchicalObject objectInReport, Boolean hideIsolatedDuplicates)
         {
-            System.Drawing.Color itemColor;
-            Boolean isObjectHiden;
-
-            if (objectInReport.Sort.HasFlag(ObjectSort.Blob))
-            {
-                AnalyzeBlob(objectInReport, hideIsolatedDuplicates, out itemColor, out isObjectHiden);
-            }
-            else if (objectInReport.Sort.HasFlag(ObjectSort.FileSpecimen))
-            {
-                AnalyzeFile(objectInReport, hideIsolatedDuplicates, out itemColor, out isObjectHiden);
-            }
-            else
-            {
-                throw new Exception();
-            }
-
             TreeViewItem[] childItems;
             HierarchicalObject[] childObjects = objectInReport.ChildObjects;
-            if (!isObjectHiden & childObjects != null && childObjects.Length > 0)
+            if (childObjects != null && childObjects.Length > 0)
             {
                 //Boolean hideFilesFromIsolatedDuplicates = hideIsolatedDuplicates && objectInReport.Sort != ObjectSort.ContainsUniqueIsolatedFiles;
                 Boolean hideFilesFromIsolatedDuplicates = hideIsolatedDuplicates;
@@ -236,20 +220,42 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 childItems = new TreeViewItem[] { };
             }
 
-            var treeViewItem = new TreeViewItem(objectInReport, itemColor, childItems, isObjectHiden);
+            TreeViewItem treeViewItem;
+            if (objectInReport.Sort.HasFlag(ObjectSort.Blob))
+            {
+                treeViewItem = AnalyzeBlob(objectInReport, childItems, hideIsolatedDuplicates);
+            }
+            else if (objectInReport.Sort.HasFlag(ObjectSort.FileSpecimen))
+            {
+                treeViewItem = AnalyzeFile(objectInReport, childItems, hideIsolatedDuplicates);
+            }
+            else
+            {
+                throw new Exception();
+            }
+
             return treeViewItem;
         }
 
-        private static void AnalyzeBlob(HierarchicalObject objectInReport, Boolean hideIsolatedDuplicates, out System.Drawing.Color itemColor, out Boolean isObjectHiden)
+        private static TreeViewItem AnalyzeBlob(HierarchicalObject objectInReport, TreeViewItem[] childItems, Boolean hideIsolatedDuplicates)
         {
+            System.Drawing.Color itemColor;
+            Boolean isObjectMoveable;
+            Boolean isObjectDeletable;
+            Boolean isObjectHiden;
+
             if (objectInReport.Sort == ObjectSort.AllDuplicatesIsolated) // TODO: check
             {
                 itemColor = System.Drawing.Color.DarkGreen;
+                isObjectMoveable = false;
+                isObjectDeletable = false;
                 isObjectHiden = hideIsolatedDuplicates;
             }
             else if (objectInReport.Sort == ObjectSort.ContainsUniqueIsolatedFiles) // TODO: check
             {
                 itemColor = System.Drawing.Color.Red;
+                isObjectMoveable = false;
+                isObjectDeletable = false;
                 isObjectHiden = false;
 
                 // TODO: Не скрывать чилдовые файлы совсем.
@@ -257,27 +263,46 @@ namespace OrdinaryDumpDeduplicator.Desktop
             else
             {
                 itemColor = System.Drawing.Color.Black;
+                isObjectMoveable = false;
+                isObjectDeletable = false;
                 isObjectHiden = false;
             }
+
+            var treeViewItem = new TreeViewItem(objectInReport, itemColor, childItems, isObjectMoveable, isObjectDeletable, isObjectHiden);
+            return treeViewItem;
         }
 
-        private static void AnalyzeFile(HierarchicalObject objectInReport, Boolean hideIsolatedDuplicates, out System.Drawing.Color itemColor, out Boolean isObjectHiden)
+        private static TreeViewItem AnalyzeFile(HierarchicalObject objectInReport, TreeViewItem[] childItems, Boolean hideIsolatedDuplicates)
         {
+            System.Drawing.Color itemColor;
+            Boolean isObjectMoveable;
+            Boolean isObjectDeletable;
+            Boolean isObjectHiden;
+
             if (objectInReport.Sort.HasFlag(ObjectSort.IsUnique))
             {
                 itemColor = System.Drawing.Color.Red;
+                isObjectMoveable = false;
+                isObjectDeletable = false;
                 isObjectHiden = false;
             }
             else if (objectInReport.Sort.HasFlag(ObjectSort.IsolatedDuplicate))
             {
-                itemColor = System.Drawing.Color.LightGreen;
+                itemColor = System.Drawing.Color.Green;
+                isObjectMoveable = false;
+                isObjectDeletable = true;
                 isObjectHiden = hideIsolatedDuplicates;
             }
             else // Обычный файл-дубликат.
             {
                 itemColor = System.Drawing.Color.Black;
+                isObjectMoveable = true;
+                isObjectDeletable = false;
                 isObjectHiden = false;
             }
+
+            var treeViewItem = new TreeViewItem(objectInReport, itemColor, childItems, isObjectMoveable, isObjectDeletable, isObjectHiden);
+            return treeViewItem;
         }
 
         private static HierarchicalObject[] GetHierarchicalObjects(TreeViewItem[] treeViewItems)
