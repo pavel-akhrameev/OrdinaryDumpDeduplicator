@@ -30,12 +30,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.ListViewItem listViewItem4 = new System.Windows.Forms.ListViewItem(new string[] {
-            "Data location",
-            "28.12.2029 12:59",
-            "1023 GiB",
-            "28.12.2029 14:58",
-            "Описание этой data location"}, -1);
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.listView1 = new System.Windows.Forms.ListView();
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -102,9 +96,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.listView1.FullRowSelect = true;
             this.listView1.GridLines = true;
             this.listView1.HideSelection = false;
-            listViewItem4.StateImageIndex = 0;
-            this.listView1.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem4});
             this.listView1.Location = new System.Drawing.Point(3, 3);
             this.listView1.Name = "listView1";
             this.listView1.Size = new System.Drawing.Size(453, 257);

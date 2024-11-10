@@ -159,6 +159,12 @@ namespace OrdinaryDumpDeduplicator
             return dataLocations;
         }
 
+        public IReadOnlyCollection<DataLocation> GetDataLocations()
+        {
+            List<DataLocation> foundDataLocations = _dataLocations.ToList();
+            return foundDataLocations;
+        }
+
         public void AddDataLocation(DataLocation dataLocation)
         {
             _dataLocations.Add(dataLocation);

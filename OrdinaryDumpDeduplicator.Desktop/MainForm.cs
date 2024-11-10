@@ -33,6 +33,13 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
             listView1.Items.Clear();
             listView1.Items.AddRange(listViewItemCollection.ToArray());
+
+            // Select the item if single item is added.
+            if (listViewItemCollection.Count == 1)
+            {
+                const Int32 singleItemIndex = 0;
+                listView1.Items[singleItemIndex].Checked = true;
+            }
         }
 
         public void AddSessionMessage(String message)

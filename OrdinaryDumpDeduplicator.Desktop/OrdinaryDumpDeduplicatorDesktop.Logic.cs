@@ -35,13 +35,11 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         private void AddDataLocationRequested(String directoryPath) // TODO !!!!!
         {
-            DataLocation dataLocation = _ordinaryDumpDeduplicator.AddDataLocation(directoryPath);
+            IReadOnlyCollection<DataLocation> dataLocations = _ordinaryDumpDeduplicator.AddDataLocation(directoryPath);
+            var listViewItems = MakeHierarchicalObjects(dataLocations);
 
-            // TODO: А теперь надо как-то показать весь список добавленных DataLocations.
             IMainViewModel mainViewModel = _windowsManager.MainViewModel;
-
-            var dataLocationObject = HierarchicalObject.Create(dataLocation, ObjectSort.None, childObjects: null, dataLocation.Path); // TODO: А каким типом будем передавать во фронт другие объекты?
-            mainViewModel.SetListViewItems(new List<HierarchicalObject> { dataLocationObject });
+            mainViewModel.SetListViewItems(listViewItems);
         }
 
         private void RescanRequested(IReadOnlyCollection<HierarchicalObject> dataLocationObjects)
@@ -169,6 +167,26 @@ namespace OrdinaryDumpDeduplicator.Desktop
         #endregion
 
         #region Private static methods
+
+        private static HierarchicalObject[] MakeHierarchicalObjects(IReadOnlyCollection<DataLocation> dataLocations)
+        {
+            var hierarchicalObjects = new List<HierarchicalObject>(dataLocations.Count);
+            foreach (DataLocation dataLocation in dataLocations)
+            {
+                HierarchicalObject hierarchicalObject = MakeHierarchicalObject(dataLocation);
+                hierarchicalObjects.Add(hierarchicalObject);
+            }
+
+            return hierarchicalObjects.ToArray();
+        }
+
+        private static HierarchicalObject MakeHierarchicalObject(DataLocation dataLocation)
+        {
+            // TODO: А каким типом будем передавать во фронт другие объекты?
+
+            var dataLocationObject = HierarchicalObject.Create(dataLocation, ObjectSort.None, childObjects: null, dataLocation.Path);
+            return dataLocationObject;
+        }
 
         private static TreeViewItem[] MakeTreeViewItems(HierarchicalObject[] hierarchicalObjects, Boolean hideIsolatedDuplicates)
         {

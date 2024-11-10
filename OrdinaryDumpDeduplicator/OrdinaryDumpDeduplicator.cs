@@ -31,7 +31,7 @@ namespace OrdinaryDumpDeduplicator
 
         #region Public methods
 
-        public DataLocation AddDataLocation(String directoryPath)
+        public IReadOnlyCollection<DataLocation> AddDataLocation(String directoryPath)
         {
             // TODO: check path provided.
 
@@ -39,8 +39,10 @@ namespace OrdinaryDumpDeduplicator
             var directory = new Directory(directoryInfo.Name, parentDirectory: null, directoryPath);
             _dataController.AddDirectory(directory);
 
-            DataLocation dataLocation = GetDataLocation(directory);
-            return dataLocation;
+            DataLocation newDataLocation = GetDataLocation(directory);
+            IReadOnlyCollection<DataLocation> dataLocations = _dataController.GetDataLocations();
+
+            return dataLocations;
         }
 
         public DataLocation DoInspection(DataLocation dataLocation)

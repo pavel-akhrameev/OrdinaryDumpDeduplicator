@@ -14,6 +14,8 @@ namespace OrdinaryDumpDeduplicator
 
         IReadOnlyCollection<DataLocation> GetDataLocations(IEnumerable<Directory> directories);
 
+        IReadOnlyCollection<DataLocation> GetDataLocations();
+
         void AddDataLocation(DataLocation dataLocation);
 
         void AddInspection(Inspection inspection);
