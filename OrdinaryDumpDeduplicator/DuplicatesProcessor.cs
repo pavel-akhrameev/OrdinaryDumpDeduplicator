@@ -136,9 +136,46 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject hierarchicalObject)
+        public void DeleteDuplicate(DuplicateReport duplicateReport, File[] filesToDelete)
         {
-            // TODO
+            IReadOnlyCollection<DataLocation> currentDataLocations = duplicateReport.DataLocations;
+            HashSet<Directory> directoriesForIsolatedDuplicates = DataStructureHelper.GetDirectoriesForIsolatedDuplicates(currentDataLocations);
+
+            // Собираем только те файлы, которые находятся в папках 'isolated duplicates'.
+            var filesSuitableForDeletion = new HashSet<File>();
+            foreach (File file in filesToDelete)
+            {
+                Boolean isFileFromIsolatedDuplicatesDir = false;
+                foreach (Directory isolatedDuplicatesDir in directoriesForIsolatedDuplicates)
+                {
+                    if (_dataController.IsFileFromDirectory(isolatedDuplicatesDir, file))
+                    {
+                        isFileFromIsolatedDuplicatesDir = true;
+                        break;
+                    }
+                }
+
+                if (isFileFromIsolatedDuplicatesDir)
+                {
+                    filesSuitableForDeletion.Add(file);
+                }
+                else
+                {
+                    throw new Exception("");
+                }
+            }
+
+            foreach (File file in filesSuitableForDeletion)
+            {
+                try
+                {
+                    _fileSystemProvider.DeleteFile(file);
+                }
+                catch (Exception exception)
+                {
+                    var exceptionString = exception.ToString();
+                }
+            }
         }
 
         #endregion

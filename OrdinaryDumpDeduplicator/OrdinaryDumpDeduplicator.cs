@@ -33,15 +33,17 @@ namespace OrdinaryDumpDeduplicator
 
         #region Public methods
 
-        public DataLocation AddDataLocation(String directoryPath)
+        public IReadOnlyCollection<DataLocation> AddDataLocation(String directoryPath)
         {
             _fileSystemProvider.CheckPathValid(directoryPath);
 
             var directory = _fileSystemProvider.GetDirectoryInfo(directoryPath, parentDirectory: null);
             _dataController.AddDirectory(directory);
 
-            DataLocation dataLocation = GetDataLocation(directory);
-            return dataLocation;
+            DataLocation newDataLocation = GetDataLocation(directory);
+            IReadOnlyCollection<DataLocation> dataLocations = _dataController.GetDataLocations();
+
+            return dataLocations;
         }
 
         public DataLocation DoInspection(DataLocation dataLocation)
@@ -131,9 +133,10 @@ namespace OrdinaryDumpDeduplicator
             _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, hierarchicalObjects);
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject hierarchicalObject)
+        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject[] hierarchicalObjects)
         {
-            _duplicatesProcessor.DeleteDuplicate(duplicateReport, hierarchicalObject);
+            var fileObjectsToProcess = GetFiles(hierarchicalObjects);
+            _duplicatesProcessor.DeleteDuplicate(duplicateReport, fileObjectsToProcess);
         }
 
         #endregion
@@ -204,6 +207,29 @@ namespace OrdinaryDumpDeduplicator
                     dataSize += fileState.Size;
                 }
             }
+        }
+
+        private static File[] GetFiles(IReadOnlyCollection<HierarchicalObject> hierarchicalObjects)
+        {
+            var files = new List<File>(hierarchicalObjects.Count);
+            foreach (HierarchicalObject hierarchicalObject in hierarchicalObjects)
+            {
+                if (hierarchicalObject == null || hierarchicalObject.Object == null)
+                {
+                    throw new Exception("HierarchicalObject is empty."); // TODO
+                }
+                else if (hierarchicalObject.Type == typeof(File))
+                {
+                    var file = hierarchicalObject.Object as File;
+                    files.Add(file);
+                }
+                else
+                {
+                    throw new ArgumentException($"Unknown type of wrapped object found '{hierarchicalObject}'");
+                }
+            }
+
+            return files.ToArray();
         }
 
         #endregion
