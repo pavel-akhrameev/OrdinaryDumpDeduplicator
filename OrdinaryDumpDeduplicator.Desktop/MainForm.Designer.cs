@@ -60,7 +60,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.splitContainer1.Cursor = System.Windows.Forms.Cursors.HSplit;
             this.splitContainer1.Location = new System.Drawing.Point(10, 10);
             this.splitContainer1.Name = "splitContainer1";
             this.splitContainer1.Orientation = System.Windows.Forms.Orientation.Horizontal;
@@ -70,7 +69,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.splitContainer1.Panel1.Controls.Add(this.listView1);
             this.splitContainer1.Panel1.Controls.Add(this.groupBox1);
             this.splitContainer1.Panel1.Controls.Add(this.groupBox2);
-            this.splitContainer1.Panel1MinSize = 262;
+            this.splitContainer1.Panel1MinSize = 200;
             // 
             // splitContainer1.Panel2
             // 
@@ -97,8 +96,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.listView1.GridLines = true;
             this.listView1.HideSelection = false;
             this.listView1.Location = new System.Drawing.Point(3, 3);
+            this.listView1.MultiSelect = false;
             this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(453, 257);
+            this.listView1.Size = new System.Drawing.Size(453, 256);
             this.listView1.TabIndex = 8;
             this.listView1.UseCompatibleStateImageBehavior = false;
             this.listView1.View = System.Windows.Forms.View.Details;
@@ -149,11 +149,11 @@ namespace OrdinaryDumpDeduplicator.Desktop
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(6, 45);
+            this.button1.Location = new System.Drawing.Point(77, 46);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(126, 23);
+            this.button1.Size = new System.Drawing.Size(103, 23);
             this.button1.TabIndex = 3;
-            this.button1.Text = "Set directory dialog";
+            this.button1.Text = "Select a directory";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
@@ -185,7 +185,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(126, 23);
             this.button3.TabIndex = 6;
-            this.button3.Text = "Rescan data locations";
+            this.button3.Text = "Rescan data location";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
@@ -207,7 +207,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.listView2.HideSelection = false;
             this.listView2.Location = new System.Drawing.Point(3, 3);
             this.listView2.Name = "listView2";
-            this.listView2.Size = new System.Drawing.Size(645, 71);
+            this.listView2.Size = new System.Drawing.Size(645, 70);
             this.listView2.TabIndex = 9;
             this.listView2.UseCompatibleStateImageBehavior = false;
             // 

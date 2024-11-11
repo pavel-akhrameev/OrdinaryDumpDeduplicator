@@ -6,8 +6,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
     internal interface IMainViewModel
     {
         event Action<String> AddDataLocationRequested;
-        event Action<IReadOnlyCollection<HierarchicalObject>> RescanRequested;
-        event Action FindDuplicatesRequested; // Переделать на передачу DataLocations
+        event Action<HierarchicalObject> RescanRequested;
+        event Action<IReadOnlyCollection<HierarchicalObject>> FindDuplicatesRequested;
 
         event Action AboutFormRequested;
         event Func<Boolean> ApplicationCloseRequested;

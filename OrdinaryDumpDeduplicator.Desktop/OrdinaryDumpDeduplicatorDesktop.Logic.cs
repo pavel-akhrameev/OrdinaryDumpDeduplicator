@@ -10,8 +10,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
     {
         #region Private fields
 
-        private HashSet<DataLocation> _currentDataLocations;
-        private DuplicateReport _currentDuplicateReport;
+        private DuplicateReport _currentDuplicateReport; // We show only one DuplicateReportForm at a time.
 
         #endregion
 
@@ -42,14 +41,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
             mainViewModel.SetListViewItems(listViewItems);
         }
 
-        private void RescanRequested(IReadOnlyCollection<HierarchicalObject> dataLocationObjects)
+        private void RescanRequested(HierarchicalObject dataLocationObject)
         {
-            var dataLocationObject = dataLocationObjects.First(); // TODO
-            if (dataLocationObject.Type != typeof(DataLocation))
-            {
-                throw new Exception(""); // TODO
-            }
-
             DataLocation dataLocation = dataLocationObject.Object as DataLocation;
 
             IMainViewModel mainViewModel = _windowsManager.MainViewModel;
@@ -57,63 +50,36 @@ namespace OrdinaryDumpDeduplicator.Desktop
             DateTime now = DateTime.Now;
 
             DataLocation currentDataLocation = _ordinaryDumpDeduplicator.DoInspection(dataLocation);
-            AddCurrentDataLocation(currentDataLocation);
 
             TimeSpan timeSpent = DateTime.Now.Subtract(now);
             String timeSpentString = TimeSpanToString(timeSpent);
             mainViewModel.AddSessionMessage($"Rescan finished in {timeSpentString}.");
 
-            ViewDuplicatesByHash(hideIsolatedDuplicates: true, doResetForm: true); // by default
+            ViewDuplicatesByHash(new[] { currentDataLocation }, hideIsolatedDuplicates: true, doResetForm: true); // by default
         }
 
-        private void FindDuplicatesRequested()
+        private void FindDuplicatesRequested(IReadOnlyCollection<HierarchicalObject> dataLocationObjects)
         {
-            ViewDuplicatesByHash(hideIsolatedDuplicates: true, doResetForm: true); // by default
+            DataLocation[] dataLocations = GetDataLocations(dataLocationObjects);
+            ViewDuplicatesByHash(dataLocations, hideIsolatedDuplicates: true, doResetForm: true); // by default
         }
 
         /// <remarks>Это событие вызывается с формы <c>DuplicateReportForm</c> значит, саму форму перезапускать не надо.</remarks>
         private void ViewDuplicatesByHashRequested(Boolean hideIsolatedDuplicates)
         {
-            ViewDuplicatesByHash(hideIsolatedDuplicates, doResetForm: false);
+            ViewDuplicatesByHash(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates, doResetForm: false);
         }
 
         private void ViewDuplicatesByFoldersRequested()
         {
-            if (_currentDataLocations != null && _currentDataLocations.Count > 0)
+            ViewDuplicatesByFolders(_currentDuplicateReport.DataLocations);
+        }
+
+        private void ViewDuplicatesByHash(IReadOnlyCollection<DataLocation> dataLocations, Boolean hideIsolatedDuplicates, Boolean doResetForm)
+        {
+            if (dataLocations != null && dataLocations.Count > 0)
             {
-                _currentDuplicateReport = _ordinaryDumpDeduplicator.GetDuplicatesFound(_currentDataLocations.ToArray());
-
-                HierarchicalObject[] duplicatesByDirectories = _currentDuplicateReport.GroupDuplicatesByDirectories();
-                TreeViewItem[] itemsInReport = MakeTreeViewItems(duplicatesByDirectories, hideIsolatedDuplicates: false);
-
-                _windowsManager.DuplicatesViewModel.SetTreeViewItems(itemsInReport, resetForm: false);
-                _windowsManager.ShowDuplicatesForm();
-            }
-        }
-
-        private void MoveToDuplicatesRequested(TreeViewItem[] treeViewItems)
-        {
-            HierarchicalObject[] hierarchicalObjects = GetHierarchicalObjects(treeViewItems);
-            _ordinaryDumpDeduplicator.MoveKnownDuplicatesToSpecialFolder(_currentDuplicateReport, hierarchicalObjects);
-
-            // TODO: обновить данные в БД.
-            // TODO: обновить данные на форме.
-        }
-
-        private void DeleteDuplicatesRequested(TreeViewItem[] treeViewItems)
-        {
-            HierarchicalObject[] hierarchicalObjects = GetHierarchicalObjects(treeViewItems);
-            _ordinaryDumpDeduplicator.DeleteDuplicate(_currentDuplicateReport, hierarchicalObjects);
-
-            // TODO: обновить данные в БД.
-            // TODO: обновить данные на форме.
-        }
-
-        private void ViewDuplicatesByHash(Boolean hideIsolatedDuplicates, Boolean doResetForm)
-        {
-            if (_currentDataLocations != null && _currentDataLocations.Count > 0)
-            {
-                _currentDuplicateReport = _ordinaryDumpDeduplicator.GetDuplicatesFound(_currentDataLocations.ToArray());
+                _currentDuplicateReport = _ordinaryDumpDeduplicator.GetDuplicatesFound(dataLocations);
 
                 // TODO: Переделать на IEnumerable для оптимизации.
 
@@ -141,14 +107,36 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
         }
 
-        private void AddCurrentDataLocation(DataLocation dataLocation)
+        private void ViewDuplicatesByFolders(IReadOnlyCollection<DataLocation> dataLocations)
         {
-            if (_currentDataLocations == null)
+            if (dataLocations != null && dataLocations.Count > 0)
             {
-                _currentDataLocations = new HashSet<DataLocation>();
-            }
+                _currentDuplicateReport = _ordinaryDumpDeduplicator.GetDuplicatesFound(dataLocations);
 
-            _currentDataLocations.Add(dataLocation);
+                HierarchicalObject[] duplicatesByDirectories = _currentDuplicateReport.GroupDuplicatesByDirectories();
+                TreeViewItem[] itemsInReport = MakeTreeViewItems(duplicatesByDirectories, hideIsolatedDuplicates: false);
+
+                _windowsManager.DuplicatesViewModel.SetTreeViewItems(itemsInReport, resetForm: false);
+                _windowsManager.ShowDuplicatesForm();
+            }
+        }
+
+        private void MoveToDuplicatesRequested(TreeViewItem[] treeViewItems)
+        {
+            HierarchicalObject[] hierarchicalObjects = GetHierarchicalObjects(treeViewItems);
+            _ordinaryDumpDeduplicator.MoveKnownDuplicatesToSpecialFolder(_currentDuplicateReport, hierarchicalObjects);
+
+            // TODO: обновить данные в БД.
+            // TODO: обновить данные на форме.
+        }
+
+        private void DeleteDuplicatesRequested(TreeViewItem[] treeViewItems)
+        {
+            HierarchicalObject[] hierarchicalObjects = GetHierarchicalObjects(treeViewItems);
+            _ordinaryDumpDeduplicator.DeleteDuplicate(_currentDuplicateReport, hierarchicalObjects);
+
+            // TODO: обновить данные в БД.
+            // TODO: обновить данные на форме.
         }
 
         private void AboutFormRequested()
@@ -329,6 +317,22 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
 
             return hierarchicalObjects.ToArray();
+        }
+
+        private static DataLocation[] GetDataLocations(IReadOnlyCollection<HierarchicalObject> hierarchicalObjects)
+        {
+            var dataLocations = new List<DataLocation>(hierarchicalObjects.Count);
+            foreach (HierarchicalObject hierarchicalObject in hierarchicalObjects)
+            {
+                if (hierarchicalObject == null || hierarchicalObject.Object == null || !hierarchicalObject.Type.Equals(typeof(DataLocation)))
+                {
+                    throw new Exception("HierarchicalObject is not valid."); // TODO
+                }
+
+                dataLocations.Add(hierarchicalObject.Object as DataLocation);
+            }
+
+            return dataLocations.ToArray();
         }
 
         private static Int64 GetDuplicatesDataSize(HierarchicalObject objectInReport)
