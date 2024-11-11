@@ -26,7 +26,7 @@ namespace OrdinaryDumpDeduplicator
 
         public System.IO.FileStream GetFileStream(String filePath)
         {
-            System.IO.FileStream fileStream = new System.IO.FileStream(filePath, System.IO.FileMode.Open);
+            System.IO.FileStream fileStream = new System.IO.FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
             return fileStream;
         }
 
