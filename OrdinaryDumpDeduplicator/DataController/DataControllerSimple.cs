@@ -159,6 +159,12 @@ namespace OrdinaryDumpDeduplicator
             return dataLocations;
         }
 
+        public IReadOnlyCollection<DataLocation> GetDataLocations()
+        {
+            List<DataLocation> foundDataLocations = _dataLocations.ToList();
+            return foundDataLocations;
+        }
+
         public void AddDataLocation(DataLocation dataLocation)
         {
             _dataLocations.Add(dataLocation);
@@ -351,6 +357,23 @@ namespace OrdinaryDumpDeduplicator
 
             var inspectionsSet = new HashSet<Inspection>(lastInspections.Values);
             return inspectionsSet;
+        }
+
+        public Boolean IsFileFromDirectory(Directory directory, File file)
+        {
+            Boolean isFileFromDirectory;
+
+            if (_files.Contains(file))
+            {
+                String relativePath = FileSystemHelper.GetRelativePath(directory.Path, file.Path);
+                isFileFromDirectory = relativePath.Length > file.Name.Length + 1;
+            }
+            else
+            {
+                throw new ArgumentException(""); // TODO
+            }
+
+            return isFileFromDirectory;
         }
 
         #endregion

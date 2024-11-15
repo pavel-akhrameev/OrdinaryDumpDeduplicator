@@ -10,6 +10,7 @@ namespace OrdinaryDumpDeduplicator
     {
         private readonly DuplicatesProcessor _duplicatesProcessor;
         private readonly DataControllerSimple _dataController;
+        private readonly FileSystemProvider _fileSystemProvider;
 
         private DataLocation _currentDataLocation;
 
@@ -18,7 +19,8 @@ namespace OrdinaryDumpDeduplicator
         public OrdinaryDumpDeduplicator()
         {
             this._dataController = new DataControllerSimple();
-            this._duplicatesProcessor = new DuplicatesProcessor(_dataController);
+            this._fileSystemProvider = new FileSystemProvider();
+            this._duplicatesProcessor = new DuplicatesProcessor(_dataController, _fileSystemProvider);
             this._currentDataLocation = null;
         }
 
@@ -31,16 +33,17 @@ namespace OrdinaryDumpDeduplicator
 
         #region Public methods
 
-        public DataLocation AddDataLocation(String directoryPath)
+        public IReadOnlyCollection<DataLocation> AddDataLocation(String directoryPath)
         {
-            // TODO: check path provided.
+            _fileSystemProvider.CheckPathValid(directoryPath);
 
-            var directoryInfo = new System.IO.DirectoryInfo(directoryPath);
-            var directory = new Directory(directoryInfo.Name, parentDirectory: null, directoryPath);
+            var directory = _fileSystemProvider.GetDirectoryInfo(directoryPath, parentDirectory: null);
             _dataController.AddDirectory(directory);
 
-            DataLocation dataLocation = GetDataLocation(directory);
-            return dataLocation;
+            DataLocation newDataLocation = GetDataLocation(directory);
+            IReadOnlyCollection<DataLocation> dataLocations = _dataController.GetDataLocations();
+
+            return dataLocations;
         }
 
         public DataLocation DoInspection(DataLocation dataLocation)
@@ -95,13 +98,19 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public BlobInfo ComputeAndSaveBlobInfo(String path)
+        public BlobInfo ComputeAndSaveBlobInfo(String filePath)
         {
             BlobInfo blobInfo;
 
             try
             {
-                Byte[] sha1HashSum = FsUtils.ComputeSha1Hash(path, out Int64 fileLength);
+                Byte[] sha1HashSum;
+                Int64 fileLength;
+                using (System.IO.FileStream fileStream = _fileSystemProvider.GetFileStream(filePath))
+                {
+                    sha1HashSum = FsUtils.ComputeSha1Hash(fileStream, out fileLength);
+                }
+
                 blobInfo = BlobInfo.Create(fileLength, sha1HashSum);
             }
             catch (Exception ex)
@@ -124,9 +133,10 @@ namespace OrdinaryDumpDeduplicator
             _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, hierarchicalObjects);
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject hierarchicalObject)
+        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject[] hierarchicalObjects)
         {
-            _duplicatesProcessor.DeleteDuplicate(duplicateReport, hierarchicalObject);
+            var fileObjectsToProcess = GetFiles(hierarchicalObjects);
+            _duplicatesProcessor.DeleteDuplicate(duplicateReport, fileObjectsToProcess);
         }
 
         #endregion
@@ -143,7 +153,7 @@ namespace OrdinaryDumpDeduplicator
 
                 try
                 {
-                    var fileInfo = new System.IO.FileInfo(file.Path);
+                    System.IO.FileInfo fileInfo = _fileSystemProvider.GetFileInfo(file);
 
                     var status = FileStatus.Unknown;
                     fileState = new FileState(file, inspection, previousState: null, fileInfo.Length, status, fileInfo.CreationTime, fileInfo.LastWriteTime);
@@ -197,6 +207,29 @@ namespace OrdinaryDumpDeduplicator
                     dataSize += fileState.Size;
                 }
             }
+        }
+
+        private static File[] GetFiles(IReadOnlyCollection<HierarchicalObject> hierarchicalObjects)
+        {
+            var files = new List<File>(hierarchicalObjects.Count);
+            foreach (HierarchicalObject hierarchicalObject in hierarchicalObjects)
+            {
+                if (hierarchicalObject == null || hierarchicalObject.Object == null)
+                {
+                    throw new Exception("HierarchicalObject is empty."); // TODO
+                }
+                else if (hierarchicalObject.Type == typeof(File))
+                {
+                    var file = hierarchicalObject.Object as File;
+                    files.Add(file);
+                }
+                else
+                {
+                    throw new ArgumentException($"Unknown type of wrapped object found '{hierarchicalObject}'");
+                }
+            }
+
+            return files.ToArray();
         }
 
         #endregion

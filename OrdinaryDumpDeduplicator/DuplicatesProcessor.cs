@@ -13,12 +13,14 @@ namespace OrdinaryDumpDeduplicator
         public const String FOLDER_NAME_FOR_DUPLICATES = "isolated duplicates";
 
         private readonly IDataController _dataController;
+        private readonly IFileSystemProvider _fileSystemProvider;
 
         #region Constructor
 
-        public DuplicatesProcessor(IDataController dataController)
+        public DuplicatesProcessor(IDataController dataController, IFileSystemProvider fileSystemProvider)
         {
             this._dataController = dataController;
+            this._fileSystemProvider = fileSystemProvider;
         }
 
         #endregion
@@ -102,9 +104,8 @@ namespace OrdinaryDumpDeduplicator
                 Directory parentDirectory = file.ParentDirectory;
                 if (!patchesForDuplicates.ContainsKey(parentDirectory))
                 {
-                    //String relativeDirectoyPath = System.IO.Path.GetRelativePath(dataLocationPath, parentDirectory.Path); // Not implemented on .Net Standard and .Net Framework.
                     String relativeDirectoyPath = FileSystemHelper.GetRelativePath(dataLocationPath, parentDirectory.Path);
-                    String folderForDuplicate = System.IO.Path.Combine(folderForDuplicates, relativeDirectoyPath);
+                    String folderForDuplicate = FileSystemHelper.GetCombinedPath(folderForDuplicates, relativeDirectoyPath);
 
                     patchesForDuplicates.Add(parentDirectory, folderForDuplicate);
                 }
@@ -123,14 +124,10 @@ namespace OrdinaryDumpDeduplicator
             {
                 String folderPathForDuplicate = patchesForDuplicates[file.ParentDirectory];
 
-                String destinationFilePath = System.IO.Path.Combine(folderPathForDuplicate, file.Name);
+                String destinationFilePath = FileSystemHelper.GetCombinedPath(folderPathForDuplicate, file.Name);
                 try
                 {
-                    System.IO.File.Move(file.Path, destinationFilePath);
-                }
-                catch (System.IO.FileNotFoundException fileNotFoundEx)
-                {
-                    var exceptionString = fileNotFoundEx.ToString();
+                    _fileSystemProvider.MoveFile(file, destinationFilePath);
                 }
                 catch (Exception exception)
                 {
@@ -139,9 +136,46 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject hierarchicalObject)
+        public void DeleteDuplicate(DuplicateReport duplicateReport, File[] filesToDelete)
         {
-            // TODO
+            IReadOnlyCollection<DataLocation> currentDataLocations = duplicateReport.DataLocations;
+            HashSet<Directory> directoriesForIsolatedDuplicates = DataStructureHelper.GetDirectoriesForIsolatedDuplicates(currentDataLocations);
+
+            // Собираем только те файлы, которые находятся в папках 'isolated duplicates'.
+            var filesSuitableForDeletion = new HashSet<File>();
+            foreach (File file in filesToDelete)
+            {
+                Boolean isFileFromIsolatedDuplicatesDir = false;
+                foreach (Directory isolatedDuplicatesDir in directoriesForIsolatedDuplicates)
+                {
+                    if (_dataController.IsFileFromDirectory(isolatedDuplicatesDir, file))
+                    {
+                        isFileFromIsolatedDuplicatesDir = true;
+                        break;
+                    }
+                }
+
+                if (isFileFromIsolatedDuplicatesDir)
+                {
+                    filesSuitableForDeletion.Add(file);
+                }
+                else
+                {
+                    throw new Exception("");
+                }
+            }
+
+            foreach (File file in filesSuitableForDeletion)
+            {
+                try
+                {
+                    _fileSystemProvider.DeleteFile(file);
+                }
+                catch (Exception exception)
+                {
+                    var exceptionString = exception.ToString();
+                }
+            }
         }
 
         #endregion
