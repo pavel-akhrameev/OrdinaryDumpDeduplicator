@@ -86,4 +86,5 @@ jobs:
         Configuration: ${{ matrix.configuration }}
 
     - name: Build the application
-      run: msbuild $env:Solution_Name /t:Rebuild /verbosity:minimal /p:Configuration=$env:Configuration
+    #  run: msbuild $env:Solution_Name /t:Rebuild /verbosity:minimal /p:Configuration=$env:Configuration
+      run: msbuild OrdinaryDumpDeduplicator.Desktop\OrdinaryDumpDeduplicator.Desktop.csproj /t:Rebuild /verbosity:minimal /p:Configuration=$env:Configuration
