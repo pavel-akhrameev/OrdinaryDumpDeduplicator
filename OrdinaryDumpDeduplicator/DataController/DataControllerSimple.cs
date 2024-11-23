@@ -107,7 +107,7 @@ namespace OrdinaryDumpDeduplicator
                 var rootDataLocationDirectories = new Dictionary<Directory, DataLocation>();
                 foreach (DataLocation dataLocation in _dataLocations)
                 {
-                    rootDataLocationDirectories.Add(dataLocation.RootDirectory, dataLocation);
+                    rootDataLocationDirectories.Add(dataLocation.Directory, dataLocation);
                 }
 
                 foreach (Directory directory in directories)
@@ -143,7 +143,7 @@ namespace OrdinaryDumpDeduplicator
 
                 foreach (DataLocation dataLocation in _dataLocations)
                 {
-                    if (directoriesSet.Contains(dataLocation.RootDirectory))
+                    if (directoriesSet.Contains(dataLocation.Directory))
                     {
                         foundDataLocations.Add(dataLocation);
                     }

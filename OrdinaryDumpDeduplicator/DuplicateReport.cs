@@ -88,8 +88,8 @@ namespace OrdinaryDumpDeduplicator
             var directoriesToReport = new Dictionary<Directory, HashSet<Directory>>();
             foreach (DataLocation dataLocation in _dataLocations)
             {
-                rootDirectories.Add(dataLocation.RootDirectory);
-                directoriesToReport.Add(dataLocation.RootDirectory, new HashSet<Directory>());
+                rootDirectories.Add(dataLocation.Directory);
+                directoriesToReport.Add(dataLocation.Directory, new HashSet<Directory>());
             }
 
             foreach (KeyValuePair<Directory, File[]> directoryWithDuplicates in directoriesWithDuplicates)

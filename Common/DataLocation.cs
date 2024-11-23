@@ -10,27 +10,21 @@ namespace OrdinaryDumpDeduplicator.Common
         private readonly Guid _id;
         private readonly String _dataLocationPath;
 
-        private Directory _rootDirectory;
+        private Directory _directory;
 
-        public Directory RootDirectory { get { return _rootDirectory; } }
+        public Directory Directory { get { return _directory; } }
 
         public String Path { get { return _dataLocationPath; } }
 
-        public DataLocation(Directory rootDirectory)
+        public DataLocation(Directory directory)
         {
-            this._rootDirectory = rootDirectory;
-            this._dataLocationPath = rootDirectory.Path;
+            this._directory = directory;
+            this._dataLocationPath = directory.Path;
         }
 
         public DataLocation(String dataLocationPath)
         {
             this._dataLocationPath = dataLocationPath;
-        }
-
-        [Obsolete]
-        public void SetRootDirectory(Directory directory)
-        {
-            this._rootDirectory = directory;
         }
     }
 }
