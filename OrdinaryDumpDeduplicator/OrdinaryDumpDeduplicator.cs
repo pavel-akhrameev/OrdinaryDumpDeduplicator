@@ -40,7 +40,7 @@ namespace OrdinaryDumpDeduplicator
             var directory = _fileSystemProvider.GetDirectoryInfo(directoryPath, parentDirectory: null);
             _dataController.AddDirectory(directory);
 
-            DataLocation newDataLocation = GetDataLocation(directory);
+            DataLocation newDataLocation = GetOrCreateDataLocation(directory);
             IReadOnlyCollection<DataLocation> dataLocations = _dataController.GetDataLocations();
 
             return dataLocations;
@@ -63,7 +63,7 @@ namespace OrdinaryDumpDeduplicator
             // Собрать атрибуты всех файлов, включая размер. Сохранить FileState в статусе Unknown или Error (если не получилось доcтать атрибуты).
             IReadOnlyCollection<FileState> statesOfFiles = GetAttributesOfFiles(fsFiles, inspection);
 
-            CountFilesAndSize(statesOfFiles, out Int32 filesCount, out Int64 dataSize);
+            //CountFilesAndSize(statesOfFiles, out Int32 filesCount, out Int64 dataSize);
 
             // Получить и сохранить хеши всех файлов. Обновить FileState до New.
             ComputeHashesOfFiles(statesOfFiles);
@@ -87,10 +87,12 @@ namespace OrdinaryDumpDeduplicator
                     blobInfo = ComputeAndSaveBlobInfo(fileState.File.Path);
                     fileStatus = FileStatus.New;
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
                     blobInfo = BlobInfo.BrokenBlobInfo;
                     fileStatus = FileStatus.Unreadable;
+
+                    String exceptionMessage = exception.Message;
                 }
 
                 fileState.SetStatusAndBlobInfo(fileStatus, blobInfo);
@@ -113,9 +115,11 @@ namespace OrdinaryDumpDeduplicator
 
                 blobInfo = BlobInfo.Create(fileLength, sha1HashSum);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 blobInfo = BlobInfo.BrokenBlobInfo;
+
+                String exceptionMessage = exception.Message;
             }
 
             _dataController.AddBlobInfo(blobInfo);
@@ -175,7 +179,7 @@ namespace OrdinaryDumpDeduplicator
             return result;
         }
 
-        private DataLocation GetDataLocation(Directory directory)
+        private DataLocation GetOrCreateDataLocation(Directory directory)
         {
             DataLocation dataLocation;
             IReadOnlyCollection<DataLocation> dataLocations = _dataController.GetDataLocations(new[] { directory });

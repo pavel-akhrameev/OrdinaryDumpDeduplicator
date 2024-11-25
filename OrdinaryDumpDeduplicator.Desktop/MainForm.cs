@@ -10,7 +10,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             InitializeComponent();
 
-            SetDirectoryPath(@"\\VBOXSVR\files\MEGA");
+            SetDirectoryPath(@"\\VBOXSVR\files\Test data for deduplication");
         }
 
         public event Action<String> AddDataLocationRequested;

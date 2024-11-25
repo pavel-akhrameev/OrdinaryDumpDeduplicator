@@ -14,7 +14,7 @@ namespace OrdinaryDumpDeduplicator.Common
             var isExists = System.IO.Directory.Exists(folderPath);
             if (!isExists)
             {
-                throw new ArgumentException("Folder doesn't not exist by given path.", "folderPath");
+                throw new ArgumentException("Folder doesn't not exist by given path.", nameof(folderPath));
             }
 
             const Directory parentDirectoryForRoot = null;

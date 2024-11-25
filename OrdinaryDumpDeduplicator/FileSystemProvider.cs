@@ -26,8 +26,17 @@ namespace OrdinaryDumpDeduplicator
 
         public System.IO.FileStream GetFileStream(String filePath)
         {
-            System.IO.FileStream fileStream = new System.IO.FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
-            return fileStream;
+            try
+            {
+                System.IO.FileStream fileStream = new System.IO.FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                return fileStream;
+            }
+            catch (Exception exception)
+            {
+                String exceptionMessage = exception.Message;
+                String exceptionType = exception.GetType().ToString();
+                throw exception;
+            }
         }
 
         public void MoveFile(File fileToMove, String destinationFilePath)

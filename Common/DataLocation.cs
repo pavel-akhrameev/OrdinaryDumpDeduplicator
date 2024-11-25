@@ -7,24 +7,18 @@ namespace OrdinaryDumpDeduplicator.Common
     /// </summary>
     public class DataLocation
     {
-        private readonly Guid _id;
         private readonly String _dataLocationPath;
 
-        private Directory _directory;
+        private readonly Directory _directory;
 
-        public Directory Directory { get { return _directory; } }
+        public Directory Directory => _directory;
 
-        public String Path { get { return _dataLocationPath; } }
+        public String Path => _dataLocationPath;
 
         public DataLocation(Directory directory)
         {
             this._directory = directory;
             this._dataLocationPath = directory.Path;
-        }
-
-        public DataLocation(String dataLocationPath)
-        {
-            this._dataLocationPath = dataLocationPath;
         }
     }
 }

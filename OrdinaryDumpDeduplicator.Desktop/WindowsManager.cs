@@ -29,13 +29,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         public IMainViewModel MainViewModel => _mainForm;
 
-        public IDuplicatesViewModel DuplicatesViewModel
-        {
-            get
-            {
-                return _duplicatesForm;
-            }
-        }
+        public IDuplicatesViewModel DuplicatesViewModel => _duplicatesForm;
 
         #endregion
 

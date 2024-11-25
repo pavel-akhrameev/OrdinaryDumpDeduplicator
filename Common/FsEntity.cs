@@ -42,7 +42,7 @@ namespace OrdinaryDumpDeduplicator.Common
                 if (_path == null)
                 {
                     _path = (_parentDirectory != null)
-                        ? System.IO.Path.Combine(_parentDirectory.Path, _name.ToString())
+                        ? System.IO.Path.Combine(_parentDirectory.Path, _name)
                         : _name;
                 }
 
@@ -54,7 +54,7 @@ namespace OrdinaryDumpDeduplicator.Common
 
         #region Overrides of object
 
-        public override bool Equals(object obj)
+        public override Boolean Equals(object obj)
         {
             if (obj == null)
             {
@@ -73,7 +73,7 @@ namespace OrdinaryDumpDeduplicator.Common
             return isEqual;
         }
 
-        public override int GetHashCode()
+        public override Int32 GetHashCode()
         {
             var hashCode = _parentDirectory != null
                 ? _name.GetHashCode() ^ _parentDirectory.GetHashCode()

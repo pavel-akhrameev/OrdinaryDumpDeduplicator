@@ -8,12 +8,16 @@ namespace OrdinaryDumpDeduplicator
 {
     internal class DataControllerSimple : IDataController
     {
+        #region Private properties
+
         private readonly HashSet<File> _files;
         private readonly HashSet<Directory> _directories;
         private readonly HashSet<DataLocation> _dataLocations;
         private readonly HashSet<Inspection> _inspections;
         private readonly HashSet<FileState> _fileStates;
         private readonly HashSet<BlobInfo> _blobInfos;
+
+        #endregion
 
         #region Constructor and initializer
 
@@ -370,7 +374,7 @@ namespace OrdinaryDumpDeduplicator
             }
             else
             {
-                throw new ArgumentException(""); // TODO
+                throw new ArgumentException("File is unknown."); // TODO
             }
 
             return isFileFromDirectory;

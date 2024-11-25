@@ -26,7 +26,7 @@ namespace OrdinaryDumpDeduplicator.Common
 
             if (sha1Digest == null)
             {
-                throw new ArgumentNullException("sha1Digest");
+                throw new ArgumentNullException(nameof(sha1Digest));
             }
 
             if (sha1Digest.Length != 20)
