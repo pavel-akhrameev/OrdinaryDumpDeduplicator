@@ -13,25 +13,31 @@ namespace OrdinaryDumpDeduplicator
 
         void AddDirectory(Directory directory);
 
+        void AddDataLocation(DataLocation dataLocation);
+
         IReadOnlyCollection<DataLocation> GetDataLocations(IEnumerable<Directory> directories);
 
         IReadOnlyCollection<DataLocation> GetDataLocations();
-
-        void AddDataLocation(DataLocation dataLocation);
 
         void AddInspection(Inspection inspection);
 
         void UpdateInspection(Inspection inspection);
 
-        FileState[] GetSimilarFileStates(FileState fileState);
+        HashSet<Inspection> GetLastInspections(IEnumerable<DataLocation> dataLocations);
 
         void AddFileState(FileState fileState);
 
         void UpdateFileState(FileState fileState);
 
+        void AddBlobInfo(BlobInfo blobInfo);
+
         Dictionary<BlobInfo, File[]> GetDuplicatesByHash(IEnumerable<DataLocation> dataLocations);
 
         Dictionary<BlobInfo, File[]> GetDirectoryCurrentFiles(IReadOnlyCollection<Directory> directories, Boolean includeSubDirectories);
+
+        FileState[] GetSimilarFileStates(FileState fileState);
+
+        IReadOnlyCollection<Directory> GetSubDirectories(HashSet<Inspection> inspections, HashSet<Directory> directories, Boolean doRecursively);
 
         Boolean IsFileFromDirectory(Directory directory, File file);
     }
