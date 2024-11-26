@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace OrdinaryDumpDeduplicator.Common
 {
-    public class BlobInfo
+    public class BlobInfo : IEquatable<BlobInfo>
     {
         public const Int32 LENGTH = 20;
 

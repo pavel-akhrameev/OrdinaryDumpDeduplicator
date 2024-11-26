@@ -2,7 +2,7 @@
 
 namespace OrdinaryDumpDeduplicator.Common
 {
-    public abstract class FsEntity
+    public abstract class FsEntity: IEquatable<FsEntity>
     {
         #region Private fields
 
@@ -67,9 +67,15 @@ namespace OrdinaryDumpDeduplicator.Common
                 return false;
             }
 
-            var isEqual = this._name.Equals(other._name) &&
-                ((this._parentDirectory == null && other._parentDirectory == null) ||
-                  this._parentDirectory.Equals(other._parentDirectory));
+            return Equals(other);
+        }
+
+        public Boolean Equals(FsEntity other)
+        {
+            var isEqual = other != null && this._name.Equals(other._name) &&
+                ((this._parentDirectory != null && this._parentDirectory.Equals(other._parentDirectory)) ||
+                    this._parentDirectory == null && other._parentDirectory == null);
+
             return isEqual;
         }
 
