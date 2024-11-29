@@ -11,13 +11,13 @@ namespace OrdinaryDumpDeduplicator
 
         private readonly IReadOnlyCollection<DataLocation> _dataLocations;
 
-        private readonly IDictionary<BlobInfo, File[]> _unprocessedDuplicatesByHash;
+        private readonly IReadOnlyCollection<SameContentFilesInfo> _unprocessedDuplicates;
 
-        private readonly IDictionary<BlobInfo, File[]> _partiallyIsolatedDuplicates;
+        private readonly IReadOnlyCollection<SameContentFilesInfo> _allDuplicatesIsolated;
 
-        private readonly IDictionary<BlobInfo, File[]> _uniqueIsolatedFiles;
+        private readonly IReadOnlyCollection<SameContentFilesInfo> _uniqueIsolatedFiles;
 
-        private readonly HashSet<Directory> _directoriesForIsolatedDuplicates;
+        private HashSet<Directory> _directoriesForIsolatedDuplicates;
 
         private Dictionary<Directory, File[]> _directoriesWithDuplicates;
 
@@ -25,20 +25,24 @@ namespace OrdinaryDumpDeduplicator
 
         internal DuplicateReport(
             IReadOnlyCollection<DataLocation> dataLocations,
-            IDictionary<BlobInfo, File[]> newDuplicatesByHash,
-            IDictionary<BlobInfo, File[]> partiallyIsolatedDuplicates,
-            IDictionary<BlobInfo, File[]> uniqueIsolatedFiles,
-            HashSet<Directory> directoriesForIsolatedDuplicates)
+            IReadOnlyCollection<SameContentFilesInfo> unprocessedDuplicates,
+            IReadOnlyCollection<SameContentFilesInfo> allDuplicatesIsolated,
+            IReadOnlyCollection<SameContentFilesInfo> uniqueIsolatedFiles)
         {
             this._dataLocations = dataLocations;
-            this._unprocessedDuplicatesByHash = newDuplicatesByHash;
-            this._partiallyIsolatedDuplicates = partiallyIsolatedDuplicates;
+            this._unprocessedDuplicates = unprocessedDuplicates;
+            this._allDuplicatesIsolated = allDuplicatesIsolated;
             this._uniqueIsolatedFiles = uniqueIsolatedFiles;
-            this._directoriesForIsolatedDuplicates = directoriesForIsolatedDuplicates;
             this._directoriesWithDuplicates = null;
         }
 
         #region Public properties
+
+        public IReadOnlyCollection<SameContentFilesInfo> DuplicatesFound => _unprocessedDuplicates;
+
+        public IReadOnlyCollection<SameContentFilesInfo> AllDuplicatesIsolated => _allDuplicatesIsolated;
+
+        public IReadOnlyCollection<SameContentFilesInfo> UniqueIsolatedFiles => _uniqueIsolatedFiles;
 
         public IReadOnlyCollection<DataLocation> DataLocations => _dataLocations;
 
@@ -49,22 +53,22 @@ namespace OrdinaryDumpDeduplicator
         public Dictionary<Directory, File[]> AnalyzeDuplicatesAndGroupByFolders()
         {
             // TODO: (?) Решить, нужны ли нам в этой подборке единичные (множественные) файлы из 'duplicates found' или нет.
-            IEnumerable<File[]> allDuplicatesByHash = System.Linq.Enumerable.Concat(_unprocessedDuplicatesByHash.Values, _partiallyIsolatedDuplicates.Values);
+            IEnumerable<SameContentFilesInfo> allDuplicatesByHash = System.Linq.Enumerable.Concat(_unprocessedDuplicates, _allDuplicatesIsolated);
 
             if (_directoriesWithDuplicates == null)
             {
                 var directoriesWithDuplicates = new Dictionary<Directory, List<File>>();
-                foreach (File[] fileDuplicates in allDuplicatesByHash)
+                foreach (SameContentFilesInfo fileDuplicates in allDuplicatesByHash)
                 {
-                    foreach (File file in fileDuplicates)
+                    foreach (FileInfo fileInfo in fileDuplicates.Duplicates)
                     {
-                        if (!directoriesWithDuplicates.ContainsKey(file.ParentDirectory))
+                        if (!directoriesWithDuplicates.ContainsKey(fileInfo.File.ParentDirectory))
                         {
-                            directoriesWithDuplicates[file.ParentDirectory] = new List<File>();
+                            directoriesWithDuplicates[fileInfo.File.ParentDirectory] = new List<File>();
                         }
 
-                        var directoryWithDuplicates = directoriesWithDuplicates[file.ParentDirectory];
-                        directoryWithDuplicates.Add(file);
+                        var directoryWithDuplicates = directoriesWithDuplicates[fileInfo.File.ParentDirectory];
+                        directoryWithDuplicates.Add(fileInfo.File);
                     }
                 }
 
@@ -144,19 +148,19 @@ namespace OrdinaryDumpDeduplicator
         public HierarchicalObject[] GroupDuplicatesByHash()
         {
             var objectsToReport = new List<HierarchicalObject>();
-            foreach (KeyValuePair<BlobInfo, File[]> duplicateInfo in _unprocessedDuplicatesByHash)
+            foreach (SameContentFilesInfo duplicatesGroup in _allDuplicatesIsolated)
             {
-                BlobInfo blobInfo = duplicateInfo.Key;
-                File[] files = duplicateInfo.Value;
+                BlobInfo blobInfo = duplicatesGroup.BlobInfo;
+                IReadOnlyCollection<FileInfo> files = duplicatesGroup.Duplicates;
 
                 HierarchicalObject blobObject = MakeUnprocessedDuplicatesObject(blobInfo, files);
                 objectsToReport.Add(blobObject);
             }
 
-            foreach (KeyValuePair<BlobInfo, File[]> duplicateInfo in _partiallyIsolatedDuplicates)
+            foreach (var duplicatesGroup in _unprocessedDuplicates)
             {
-                BlobInfo blobInfo = duplicateInfo.Key;
-                File[] files = duplicateInfo.Value;
+                BlobInfo blobInfo = duplicatesGroup.BlobInfo;
+                IReadOnlyCollection<FileInfo> files = duplicatesGroup.Duplicates;
 
                 HierarchicalObject blobObject = MakeComplexBlobObject(blobInfo, files); // Вот тут внимательнее
                 objectsToReport.Add(blobObject);
@@ -168,10 +172,10 @@ namespace OrdinaryDumpDeduplicator
         public HierarchicalObject[] GetUniqueIsolatedFiles()
         {
             var objectsToReport = new List<HierarchicalObject>();
-            foreach (KeyValuePair<BlobInfo, File[]> duplicateInfo in _uniqueIsolatedFiles)
+            foreach (SameContentFilesInfo duplicateInfo in _uniqueIsolatedFiles)
             {
-                BlobInfo blobInfo = duplicateInfo.Key;
-                File[] files = duplicateInfo.Value;
+                BlobInfo blobInfo = duplicateInfo.BlobInfo;
+                IReadOnlyCollection<FileInfo> files = duplicateInfo.Duplicates;
 
                 HierarchicalObject blobObject = MakeUniqueIsolatedObject(blobInfo, files);
                 objectsToReport.Add(blobObject);
@@ -184,7 +188,7 @@ namespace OrdinaryDumpDeduplicator
 
         #region Private methods
 
-        private HierarchicalObject MakeUnprocessedDuplicatesObject(BlobInfo blobInfo, File[] files)
+        private HierarchicalObject MakeUnprocessedDuplicatesObject(BlobInfo blobInfo, IReadOnlyCollection<FileInfo> files)
         {
             HierarchicalObject[] fileObjects = MakeFileObjects(files, out Int32 unprocessedDuplicatesCount, out Int32 isolatedDuplicatesCount);
 
@@ -215,7 +219,7 @@ namespace OrdinaryDumpDeduplicator
             return blobObject;
         }
 
-        private HierarchicalObject MakeComplexBlobObject(BlobInfo blobInfo, File[] files)
+        private HierarchicalObject MakeComplexBlobObject(BlobInfo blobInfo, IReadOnlyCollection<FileInfo> files)
         {
             HierarchicalObject[] fileObjects = MakeFileObjects(files, out Int32 unprocessedDuplicatesCount, out Int32 isolatedDuplicatesCount);
 
@@ -250,7 +254,7 @@ namespace OrdinaryDumpDeduplicator
             return blobObject;
         }
 
-        private HierarchicalObject MakeUniqueIsolatedObject(BlobInfo blobInfo, File[] files)
+        private HierarchicalObject MakeUniqueIsolatedObject(BlobInfo blobInfo, IReadOnlyCollection<FileInfo> files)
         {
             HierarchicalObject[] fileObjects = MakeFileObjects(files, out Int32 unprocessedDuplicatesCount, out Int32 isolatedDuplicatesCount);
             ObjectSort blobSort = ObjectSort.Blob;
@@ -279,23 +283,21 @@ namespace OrdinaryDumpDeduplicator
             return blobObject;
         }
 
-        private HierarchicalObject[] MakeFileObjects(File[] files, out Int32 unprocessedDuplicatesCount, out Int32 isolatedDuplicatesCount)
+        private HierarchicalObject[] MakeFileObjects(IReadOnlyCollection<FileInfo> files, out Int32 unprocessedDuplicatesCount, out Int32 isolatedDuplicatesCount)
         {
             unprocessedDuplicatesCount = 0;
             isolatedDuplicatesCount = 0;
 
-            Boolean isFileUnique = files.Length == 1;
+            Boolean isFileUnique = files.Count == 1;
 
-            HierarchicalObject[] objects = new HierarchicalObject[files.Length];
-            for (Int32 index = 0; index < files.Length; index++)
+            var objects = new List<HierarchicalObject>(files.Count);
+            foreach (var fileInfo in files)
             {
-                var file = files[index];
-
                 ObjectSort fileSort = isFileUnique
                     ? ObjectSort.FileSpecimen | ObjectSort.IsUnique
                     : ObjectSort.FileSpecimen;
 
-                if (IsDirectoryInIsolatedDuplicates(file.ParentDirectory))
+                if (IsDirectoryInIsolatedDuplicates(fileInfo.File.ParentDirectory))
                 {
                     fileSort |= ObjectSort.IsolatedDuplicate;
                     isolatedDuplicatesCount++;
@@ -306,11 +308,11 @@ namespace OrdinaryDumpDeduplicator
                     unprocessedDuplicatesCount++;
                 }
 
-                HierarchicalObject fileObject = MakeFileObject(file, fileSort);
-                objects[index] = fileObject;
+                HierarchicalObject fileObject = MakeFileObject(fileInfo.File, fileSort);
+                objects.Add(fileObject);
             }
 
-            return objects;
+            return objects.ToArray();
         }
 
         private Boolean IsDirectoryInIsolatedDuplicates(Directory directory) // TODO: check
