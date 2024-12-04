@@ -14,20 +14,20 @@ namespace OrdinaryDumpDeduplicator.Desktop
         }
 
         public event Action<String> AddDataLocationRequested;
-        public event Action<HierarchicalObject> RescanRequested;
-        public event Action<IReadOnlyCollection<HierarchicalObject>> FindDuplicatesRequested;
+        public event Action<ItemToView> RescanRequested;
+        public event Action<IReadOnlyCollection<ItemToView>> FindDuplicatesRequested;
 
         public event Action AboutFormRequested;
         public event Func<Boolean> ApplicationCloseRequested;
 
         #region Public methods
 
-        public void SetListViewItems(IReadOnlyCollection<HierarchicalObject> hierarchicalObjects)
+        public void SetListViewItems(IReadOnlyCollection<ItemToView> items)
         {
-            var listViewItemCollection = new List<ListViewItem>(hierarchicalObjects.Count);
-            foreach (HierarchicalObject hierarchicalObject in hierarchicalObjects)
+            var listViewItemCollection = new List<ListViewItem>(items.Count);
+            foreach (ItemToView itemToView in items)
             {
-                var listViewItem = MakeListViewItem(hierarchicalObject);
+                var listViewItem = MakeListViewItem(itemToView);
                 listViewItemCollection.Add(listViewItem);
             }
 
@@ -89,10 +89,10 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             if (RescanRequested != null)
             {
-                HierarchicalObject selectedObject = null;
+                ItemToView selectedObject = null;
                 if (listView1.CheckedItems != null && listView1.CheckedItems.Count == 1)
                 {
-                    IReadOnlyCollection<HierarchicalObject> checkedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.CheckedItems));
+                    IReadOnlyCollection<ItemToView> checkedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.CheckedItems));
                     if (checkedObjects != null && checkedObjects.Count == 1)
                     {
                         selectedObject = System.Linq.Enumerable.First(checkedObjects);
@@ -104,7 +104,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 }
                 else if (listView1.CheckedItems != null && listView1.SelectedItems.Count > 0)
                 {
-                    IReadOnlyCollection<HierarchicalObject> selectedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.SelectedItems));
+                    IReadOnlyCollection<ItemToView> selectedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.SelectedItems));
                     if (selectedObjects != null && selectedObjects.Count > 0)
                     {
                         selectedObject = System.Linq.Enumerable.First(selectedObjects);
@@ -130,7 +130,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             if (listView1.CheckedItems != null && listView1.CheckedItems.Count > 0)
             {
-                IReadOnlyCollection<HierarchicalObject> checkedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.CheckedItems));
+                IReadOnlyCollection<ItemToView> checkedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.CheckedItems));
                 if (checkedObjects != null && checkedObjects.Count > 0 && FindDuplicatesRequested != null)
                 {
                     FindDuplicatesRequested.Invoke(checkedObjects);
@@ -164,17 +164,17 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         #region Private static methods
 
-        private static IReadOnlyCollection<HierarchicalObject> GetObjectsFromListViewItems(IEnumerable<ListViewItem> listViewItems)
+        private static IReadOnlyCollection<ItemToView> GetObjectsFromListViewItems(IEnumerable<ListViewItem> listViewItems)
         {
-            var objects = new List<HierarchicalObject>();
+            var objects = new List<ItemToView>();
             foreach (ListViewItem listItem in listViewItems)
             {
                 Object listItemTag = listItem.Tag;
 
-                HierarchicalObject hierarchicalObject;
-                if (listItemTag is HierarchicalObject)
+                ItemToView itemToView;
+                if (listItemTag is ItemToView)
                 {
-                    hierarchicalObject = listItemTag as HierarchicalObject;
+                    itemToView = listItemTag as ItemToView;
                 }
                 else
                 {
@@ -182,18 +182,19 @@ namespace OrdinaryDumpDeduplicator.Desktop
                     throw new Exception($"{type.Name} is wrong type for listView1 item.");
                 }
 
-                objects.Add(hierarchicalObject);
+                objects.Add(itemToView);
             }
 
             return objects;
         }
 
-        private static ListViewItem MakeListViewItem(HierarchicalObject hierarchicalObject)
+        private static ListViewItem MakeListViewItem(ItemToView itemToView)
         {
-            String hierarchicalObjectSortString = Enum.GetName(typeof(ObjectSort), hierarchicalObject.Sort);
-            var fields = new String[] { hierarchicalObject.Name, hierarchicalObjectSortString, String.Empty, String.Empty, hierarchicalObject.ToString() };
+            //String ItemToViewSortString = Enum.GetName(typeof(ObjectSort), ItemToView.Sort);
+            String lastRescanDate = "None";
+            var fields = new String[] { itemToView.Name, lastRescanDate, String.Empty, String.Empty, itemToView.ToString() };
             var listViewItem = new ListViewItem(fields);
-            listViewItem.Tag = hierarchicalObject;
+            listViewItem.Tag = itemToView;
 
             return listViewItem;
         }

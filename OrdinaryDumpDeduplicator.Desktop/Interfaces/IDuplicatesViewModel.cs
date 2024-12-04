@@ -5,12 +5,12 @@ namespace OrdinaryDumpDeduplicator.Desktop
     internal interface IDuplicatesViewModel
     {
         event Action<Boolean> ViewGroupsByHashRequested;
-        event Action ViewGroupsByFoldersRequested;
+        event Action<Boolean> ViewGroupsByFoldersRequested;
 
-        event Action<TreeViewItem[]> MoveToDuplicatesRequested;
-        event Action<TreeViewItem[]> DeleteDuplicatesRequested;
+        event Action<ItemToView[]> MoveToDuplicatesRequested;
+        event Action<ItemToView[]> DeleteDuplicatesRequested;
 
-        void SetTreeViewItems(TreeViewItem[] treeViewItems, Boolean resetForm);
+        void SetTreeViewItems(ItemToView[] treeViewItems, Boolean resetForm);
 
         void AddSessionMessage(String message);
     }

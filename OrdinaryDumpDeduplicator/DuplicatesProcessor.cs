@@ -48,67 +48,34 @@ namespace OrdinaryDumpDeduplicator
             return new DuplicateReport(dataLocations, unprocessedDuplicates, allDuplicatesIsolated, uniqueIsolatedFiles);
         }
 
-        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, HierarchicalObject[] hierarchicalObjects)
+        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
         {
-            String dataLocationPath;
-            if (duplicateReport.DataLocations.Count == 1)
+            // Словарь, у какой DataLocation какой путь к папке 'isolated duplicates'.
+            var directoriesForDuplicates = new Dictionary<DataLocation, String>();
+            foreach (var dataLocation in duplicateReport.DataLocations)
             {
-                DataLocation currentDataLocation = System.Linq.Enumerable.First(duplicateReport.DataLocations);
-                dataLocationPath = currentDataLocation.Path;
-            }
-            else
-            {
-                throw new NotImplementedException(""); // TODO
-            }
-
-            String folderForDuplicates = System.IO.Path.Combine(dataLocationPath, FOLDER_NAME_FOR_DUPLICATES);
-
-            // Note: На данном этапе в виде сущности HierarchicalObjectInReport может быть передан объект следующих типов:
-            // Directory или File.
-
-            var fileObjectsToProcess = new HashSet<HierarchicalObject>();
-            foreach (HierarchicalObject hierarchicalObject in hierarchicalObjects)
-            {
-                // Определить, это папка или файл.
-
-                File file = hierarchicalObject.Object as File;
-                Directory directory = hierarchicalObject.Object as Directory;
-                if (directory != null)
-                {
-                    AddAllSubObjects(hierarchicalObject, fileObjectsToProcess);
-                }
-                else if (file != null)
-                {
-                    fileObjectsToProcess.Add(hierarchicalObject);
-                }
-                else
-                {
-                    throw new ArgumentException($"Unknown type of wrapped object found '{hierarchicalObject}'");
-                }
-            }
-
-            var filesToProcess = new HashSet<File>();
-            foreach (var fileObject in fileObjectsToProcess)
-            {
-                filesToProcess.Add(fileObject.Object as File);
+                String directoryPathForDuplicates = System.IO.Path.Combine(dataLocation.Path, FOLDER_NAME_FOR_DUPLICATES);
+                directoriesForDuplicates.Add(dataLocation, directoryPathForDuplicates);
             }
 
             // Собрать пути в папке для дубликатов для каждого файла.
-            var patchesForDuplicates = new Dictionary<Directory, String>();
-            foreach (File file in filesToProcess)
+            var pathsForDuplicates = new Dictionary<Directory, String>();
+            foreach (FileInfo duplicate in duplicates)
             {
-                Directory parentDirectory = file.ParentDirectory;
-                if (!patchesForDuplicates.ContainsKey(parentDirectory))
+                Directory parentDirectory = duplicate.File.ParentDirectory;
+                if (!pathsForDuplicates.ContainsKey(parentDirectory))
                 {
-                    String relativeDirectoyPath = FileSystemHelper.GetRelativePath(dataLocationPath, parentDirectory.Path);
+                    DataLocation dataLocation = duplicate.DataLocation;
+                    String folderForDuplicates = directoriesForDuplicates[dataLocation];
+                    String relativeDirectoyPath = FileSystemHelper.GetRelativePath(dataLocation.Path, parentDirectory.Path);
                     String folderForDuplicate = FileSystemHelper.GetCombinedPath(folderForDuplicates, relativeDirectoyPath);
 
-                    patchesForDuplicates.Add(parentDirectory, folderForDuplicate);
+                    pathsForDuplicates.Add(parentDirectory, folderForDuplicate);
                 }
             }
 
             // Подготовить папки для дубликатов.
-            foreach (String patchForDuplicates in patchesForDuplicates.Values)
+            foreach (String patchForDuplicates in pathsForDuplicates.Values)
             {
                 if (!System.IO.Directory.Exists(patchForDuplicates))
                 {
@@ -116,9 +83,10 @@ namespace OrdinaryDumpDeduplicator
                 }
             }
 
-            foreach (File file in filesToProcess)
+            foreach (FileInfo duplicate in duplicates)
             {
-                String folderPathForDuplicate = patchesForDuplicates[file.ParentDirectory];
+                File file = duplicate.File;
+                String folderPathForDuplicate = pathsForDuplicates[file.ParentDirectory];
 
                 String destinationFilePath = FileSystemHelper.GetCombinedPath(folderPathForDuplicate, file.Name);
                 try
@@ -132,19 +100,19 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, File[] filesToDelete)
+        public void DeleteDuplicate(DuplicateReport duplicateReport, FileInfo[] filesToDelete)
         {
             IReadOnlyCollection<DataLocation> currentDataLocations = duplicateReport.DataLocations;
             HashSet<Directory> directoriesForIsolatedDuplicates = DataStructureHelper.GetDirectoriesForIsolatedDuplicates(currentDataLocations);
 
             // Собираем только те файлы, которые находятся в папках 'isolated duplicates'.
             var filesSuitableForDeletion = new HashSet<File>();
-            foreach (File file in filesToDelete)
+            foreach (FileInfo duplicate in filesToDelete)
             {
                 Boolean isFileFromIsolatedDuplicatesDir = false;
                 foreach (Directory isolatedDuplicatesDir in directoriesForIsolatedDuplicates)
                 {
-                    if (_dataController.IsFileFromDirectory(isolatedDuplicatesDir, file))
+                    if (_dataController.IsFileFromDirectory(isolatedDuplicatesDir, duplicate.File))
                     {
                         isFileFromIsolatedDuplicatesDir = true;
                         break;
@@ -153,7 +121,7 @@ namespace OrdinaryDumpDeduplicator
 
                 if (isFileFromIsolatedDuplicatesDir)
                 {
-                    filesSuitableForDeletion.Add(file);
+                    filesSuitableForDeletion.Add(duplicate.File);
                 }
                 else
                 {
@@ -222,26 +190,6 @@ namespace OrdinaryDumpDeduplicator
         }
 
         #region Private static methods
-
-        private static void AddAllSubObjects(HierarchicalObject hierarchicalObject, ICollection<HierarchicalObject> subObjects)
-        {
-            foreach (var childObject in hierarchicalObject.ChildObjects)
-            {
-                switch (childObject.Object)
-                {
-                    case Directory directory:
-                        AddAllSubObjects(childObject, subObjects);
-                        break;
-
-                    case File file:
-                        subObjects.Add(childObject);
-                        break;
-
-                    default:
-                        throw new ArgumentException($"Unknown type of wrapped object found '{childObject}'");
-                }
-            }
-        }
 
         private static void SeparateFoundDuplicatesIntoCategories(
             IReadOnlyCollection<SameContentFilesInfo> duplicatesByHash,

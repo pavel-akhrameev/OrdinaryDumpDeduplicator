@@ -75,7 +75,28 @@ namespace OrdinaryDumpDeduplicator
             return _currentDataLocation;
         }
 
-        public void ComputeHashesOfFiles(IReadOnlyCollection<FileState> statesOfFiles)
+        public DuplicateReport GetDuplicatesFound(IReadOnlyCollection<DataLocation> dataLocations)
+        {
+            DuplicateReport duplicateReport = _duplicatesProcessor.GetDuplicatesFound(dataLocations);
+            return duplicateReport;
+        }
+
+        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
+        {
+            _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, duplicates);
+        }
+
+        public void DeleteDuplicate(DuplicateReport duplicateReport, FileInfo[] filesToDelete)
+        {
+            //var fileObjectsToProcess = GetFiles(ItemToViews);
+            _duplicatesProcessor.DeleteDuplicate(duplicateReport, filesToDelete);
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private void ComputeHashesOfFiles(IReadOnlyCollection<FileState> statesOfFiles)
         {
             foreach (FileState fileState in statesOfFiles)
             {
@@ -100,7 +121,7 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public BlobInfo ComputeAndSaveBlobInfo(String filePath)
+        private BlobInfo ComputeAndSaveBlobInfo(String filePath)
         {
             BlobInfo blobInfo;
 
@@ -125,27 +146,6 @@ namespace OrdinaryDumpDeduplicator
             _dataController.AddBlobInfo(blobInfo);
             return blobInfo;
         }
-
-        public DuplicateReport GetDuplicatesFound(IReadOnlyCollection<DataLocation> dataLocations)
-        {
-            DuplicateReport duplicateReport = _duplicatesProcessor.GetDuplicatesFound(dataLocations);
-            return duplicateReport;
-        }
-
-        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, HierarchicalObject[] hierarchicalObjects)
-        {
-            _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, hierarchicalObjects);
-        }
-
-        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject[] hierarchicalObjects)
-        {
-            var fileObjectsToProcess = GetFiles(hierarchicalObjects);
-            _duplicatesProcessor.DeleteDuplicate(duplicateReport, fileObjectsToProcess);
-        }
-
-        #endregion
-
-        #region Private methods
 
         private IReadOnlyCollection<FileState> GetAttributesOfFiles(IReadOnlyCollection<File> files, Inspection inspection)
         {
@@ -211,29 +211,6 @@ namespace OrdinaryDumpDeduplicator
                     dataSize += fileState.Size;
                 }
             }
-        }
-
-        private static File[] GetFiles(IReadOnlyCollection<HierarchicalObject> hierarchicalObjects)
-        {
-            var files = new List<File>(hierarchicalObjects.Count);
-            foreach (HierarchicalObject hierarchicalObject in hierarchicalObjects)
-            {
-                if (hierarchicalObject == null || hierarchicalObject.Object == null)
-                {
-                    throw new Exception("HierarchicalObject is empty."); // TODO
-                }
-                else if (hierarchicalObject.Type == typeof(File))
-                {
-                    var file = hierarchicalObject.Object as File;
-                    files.Add(file);
-                }
-                else
-                {
-                    throw new ArgumentException($"Unknown type of wrapped object found '{hierarchicalObject}'");
-                }
-            }
-
-            return files.ToArray();
         }
 
         #endregion
