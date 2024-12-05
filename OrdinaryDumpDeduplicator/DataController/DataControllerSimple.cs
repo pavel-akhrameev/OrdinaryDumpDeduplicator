@@ -338,7 +338,7 @@ namespace OrdinaryDumpDeduplicator
         public IReadOnlyCollection<Directory> GetSubDirectories(HashSet<Inspection> inspections, HashSet<Directory> directories, Boolean doRecursively)
         {
             // TODO: Учесть инспекцию.
-            // (?) А может для директорий инспекции и е важны вовсе. Инспекции важны только для файлов.
+            // (?) А может для директорий инспекции и не важны вовсе. Инспекции важны только для файлов.
 
             var subDirectories = new List<Directory>();
             foreach (Directory directoryFromDb in _directories)
