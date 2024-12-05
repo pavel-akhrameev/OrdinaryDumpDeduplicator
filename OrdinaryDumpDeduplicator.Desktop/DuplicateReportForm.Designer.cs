@@ -51,7 +51,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.treeView1.Location = new System.Drawing.Point(10, 10);
             this.treeView1.Name = "treeView1";
             this.treeView1.Size = new System.Drawing.Size(452, 341);
-            this.treeView1.TabIndex = 0;
+            this.treeView1.TabIndex = 2;
             this.treeView1.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterSelect);
             this.treeView1.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView1_NodeMouseClick);
             // 
@@ -63,7 +63,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.groupBox1.Location = new System.Drawing.Point(468, 10);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(194, 73);
-            this.groupBox1.TabIndex = 11;
+            this.groupBox1.TabIndex = 1;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Veiw";
             // 
@@ -74,7 +74,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.radioButton1.Location = new System.Drawing.Point(6, 20);
             this.radioButton1.Name = "radioButton1";
             this.radioButton1.Size = new System.Drawing.Size(97, 17);
-            this.radioButton1.TabIndex = 4;
+            this.radioButton1.TabIndex = 3;
             this.radioButton1.TabStop = true;
             this.radioButton1.Text = "groups by hash";
             this.radioButton1.UseVisualStyleBackColor = true;
@@ -86,7 +86,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.radioButton2.Location = new System.Drawing.Point(6, 42);
             this.radioButton2.Name = "radioButton2";
             this.radioButton2.Size = new System.Drawing.Size(105, 17);
-            this.radioButton2.TabIndex = 5;
+            this.radioButton2.TabIndex = 4;
             this.radioButton2.TabStop = true;
             this.radioButton2.Text = "groups by folders";
             this.radioButton2.UseVisualStyleBackColor = true;
@@ -99,7 +99,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.textBox1.Name = "textBox1";
             this.textBox1.ReadOnly = true;
             this.textBox1.Size = new System.Drawing.Size(652, 20);
-            this.textBox1.TabIndex = 7;
+            this.textBox1.TabIndex = 6;
             // 
             // checkBox1
             // 
@@ -108,7 +108,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.checkBox1.Location = new System.Drawing.Point(468, 89);
             this.checkBox1.Name = "checkBox1";
             this.checkBox1.Size = new System.Drawing.Size(143, 17);
-            this.checkBox1.TabIndex = 12;
+            this.checkBox1.TabIndex = 5;
             this.checkBox1.Text = "Show isolated duplicates";
             this.checkBox1.UseVisualStyleBackColor = true;
             this.checkBox1.CheckedChanged += new System.EventHandler(this.treeItemsViewParameters_Changed);
