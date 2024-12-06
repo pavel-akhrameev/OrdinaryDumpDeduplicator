@@ -7,7 +7,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
 {
     public partial class DuplicateReportForm : Form, IDuplicatesViewModel
     {
-        private readonly ContextMenuStrip emptyContextMenuStrip = new ContextMenuStrip();
+        private readonly ContextMenuStrip _emptyContextMenuStrip = new ContextMenuStrip();
 
         private Boolean _ignoreEventsFromControls = false;
 
@@ -17,14 +17,14 @@ namespace OrdinaryDumpDeduplicator.Desktop
         }
 
         public event Action<Boolean> ViewGroupsByHashRequested;
-        public event Action ViewGroupsByFoldersRequested;
+        public event Action<Boolean> ViewGroupsByFoldersRequested;
 
-        public event Action<TreeViewItem[]> MoveToDuplicatesRequested;
-        public event Action<TreeViewItem[]> DeleteDuplicatesRequested;
+        public event Action<ItemToView[]> MoveToDuplicatesRequested;
+        public event Action<ItemToView[]> DeleteDuplicatesRequested;
 
         #region Public methods
 
-        public void SetTreeViewItems(TreeViewItem[] treeViewItems, Boolean resetForm)
+        public void SetTreeViewItems(ItemToView[] treeViewItems, Boolean resetForm)
         {
             treeView1.Nodes.Clear();
             Boolean viewFullPath = radioButton1.Checked; // TODO
@@ -34,7 +34,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 ResetFormControls();
             }
 
-            foreach (TreeViewItem itemInReport in treeViewItems)
+            foreach (ItemToView itemInReport in treeViewItems)
             {
                 TreeNode treeNode = MakeTreeNodeWithChildren(itemInReport);
                 treeView1.Nodes.Add(treeNode);
@@ -52,11 +52,12 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         private void ViewGroupsOfDuplicates()
         {
+            Boolean hideIsolatedDuplicates = !checkBox1.Checked;
+
             if (radioButton1.Checked)
             {
                 if (ViewGroupsByHashRequested != null)
                 {
-                    Boolean hideIsolatedDuplicates = !checkBox1.Checked;
                     ViewGroupsByHashRequested.Invoke(hideIsolatedDuplicates);
                 }
             }
@@ -64,7 +65,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             {
                 if (ViewGroupsByFoldersRequested != null)
                 {
-                    ViewGroupsByFoldersRequested.Invoke();
+                    ViewGroupsByFoldersRequested.Invoke(hideIsolatedDuplicates);
                 }
             }
         }
@@ -73,6 +74,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             _ignoreEventsFromControls = true;
 
+            radioButton1.Checked = true;
             checkBox1.Checked = false;
 
             _ignoreEventsFromControls = false;
@@ -84,11 +86,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         private void treeItemsViewParameters_Changed(object sender, EventArgs e)
         {
-            if (!radioButton1.Checked)
-            {
-                checkBox1.Enabled = false;
-            }
-
             if (!_ignoreEventsFromControls)
             {
                 ViewGroupsOfDuplicates();
@@ -113,7 +110,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             if (treeView1.SelectedNode != null)
             {
-                TreeViewItem treeViewItem = GetTreeViewItem(treeView1.SelectedNode);
+                ItemToView treeViewItem = GetTreeViewItem(treeView1.SelectedNode);
                 if (treeViewItem != null && MoveToDuplicatesRequested != null)
                 {
                     MoveToDuplicatesRequested.Invoke(new[] { treeViewItem });
@@ -125,7 +122,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             if (treeView1.SelectedNode != null)
             {
-                TreeViewItem treeViewItem = GetTreeViewItem(treeView1.SelectedNode);
+                ItemToView treeViewItem = GetTreeViewItem(treeView1.SelectedNode);
                 if (treeViewItem != null && DeleteDuplicatesRequested != null)
                 {
                     DeleteDuplicatesRequested.Invoke(new[] { treeViewItem });
@@ -139,7 +136,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             {
                 treeView1.SelectedNode = e.Node;
 
-                TreeViewItem treeViewItem = e.Node.Tag as TreeViewItem;
+                ItemToView treeViewItem = e.Node.Tag as ItemToView;
                 if (treeViewItem != null)
                 {
                     moveToDuplicatesToolStripMenuItem.Enabled = treeViewItem.IsMoveable;
@@ -149,12 +146,12 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 }
                 else
                 {
-                    e.Node.ContextMenuStrip = emptyContextMenuStrip;
+                    e.Node.ContextMenuStrip = _emptyContextMenuStrip;
                 }
             }
             else
             {
-                e.Node.ContextMenuStrip = emptyContextMenuStrip;
+                e.Node.ContextMenuStrip = _emptyContextMenuStrip;
             }
 
             /*
@@ -175,43 +172,57 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         #region Private static methods
 
-        private static TreeNode MakeTreeNodeWithChildren(TreeViewItem itemInReport)
+        private static TreeNode MakeTreeNodeWithChildren(ItemToView itemInReport)
         {
-            TreeNode treeNode;
+            TreeNode[] childNodes;
 
-            TreeViewItem[] childItems = itemInReport.ChildItems;
-            TreeNode[] childNodes = new TreeNode[childItems.Length];
+            ItemToView[] childItems = itemInReport.ChildItems;
             if (childItems != null && childItems.Length > 0)
             {
+                childNodes = new TreeNode[childItems.Length];
+
                 for (Int32 index = 0; index < childItems.Length; index++)
                 {
-                    TreeViewItem childItem = childItems[index];
+                    ItemToView childItem = childItems[index];
                     TreeNode childNode = MakeTreeNodeWithChildren(childItem);
                     childNodes[index] = childNode;
                 }
             }
+            else
+            {
+                childNodes = new TreeNode[] { };
+            }
 
-            treeNode = MakeTreeNode(itemInReport, childNodes);
+            TreeNode treeNode = MakeTreeNode(itemInReport, childNodes);
             return treeNode;
         }
 
-        private static TreeNode MakeTreeNode(TreeViewItem itemInReport, TreeNode[] children = null)
+        private static TreeNode MakeTreeNode(ItemToView itemInReport, TreeNode[] children = null)
         {
-            var treeNode = new TreeNode(itemInReport.Name, children);
+            TreeNode treeNode;
+            if (children != null)
+            {
+                treeNode = new TreeNode(itemInReport.Name, children);
+            }
+            else
+            {
+                treeNode = new TreeNode(itemInReport.Name);
+            }
+
             treeNode.ForeColor = itemInReport.Color;
             treeNode.Tag = itemInReport;
 
             return treeNode;
         }
 
-        private static TreeViewItem GetTreeViewItem(TreeNode treeNode)
+        private static ItemToView GetTreeViewItem(TreeNode treeNode)
         {
             Object nodeTag = treeNode.Tag;
 
-            TreeViewItem treeViewItem;
-            if (nodeTag is TreeViewItem)
+            ItemToView treeViewItem;
+            if (nodeTag is ItemToView)
             {
-                treeViewItem = nodeTag as TreeViewItem;
+                treeViewItem = nodeTag as ItemToView;
             }
             else
             {

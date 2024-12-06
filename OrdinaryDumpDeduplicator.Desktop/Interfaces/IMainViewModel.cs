@@ -6,13 +6,13 @@ namespace OrdinaryDumpDeduplicator.Desktop
     internal interface IMainViewModel
     {
         event Action<String> AddDataLocationRequested;
-        event Action<HierarchicalObject> RescanRequested;
-        event Action<IReadOnlyCollection<HierarchicalObject>> FindDuplicatesRequested;
+        event Action<ItemToView> RescanRequested;
+        event Action<IReadOnlyCollection<ItemToView>> FindDuplicatesRequested;
 
         event Action AboutFormRequested;
         event Func<Boolean> ApplicationCloseRequested;
 
-        void SetListViewItems(IReadOnlyCollection<HierarchicalObject> hierarchicalObjects);
+        void SetListViewItems(IReadOnlyCollection<ItemToView> items);
 
         void AddSessionMessage(String message);
     }

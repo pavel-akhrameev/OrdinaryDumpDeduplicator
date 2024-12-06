@@ -7,11 +7,13 @@ namespace OrdinaryDumpDeduplicator
 {
     public interface IDataController
     {
-        IReadOnlyCollection<File> GetFilesOfDirectory(Directory directory, Boolean includeSubDirectories);
-
         void AddFile(File file);
 
         void AddDirectory(Directory directory);
+
+        Directory FindDirectory(Directory parentDirectory, String name);
+
+        Directory FindDirectory(String directoryPath);
 
         void AddDataLocation(DataLocation dataLocation);
 
@@ -31,11 +33,9 @@ namespace OrdinaryDumpDeduplicator
 
         void AddBlobInfo(BlobInfo blobInfo);
 
-        Dictionary<BlobInfo, File[]> GetDuplicatesByHash(IEnumerable<DataLocation> dataLocations);
+        IReadOnlyCollection<FileInfo> GetDuplicates(IEnumerable<DataLocation> dataLocations);
 
-        Dictionary<BlobInfo, File[]> GetDirectoryCurrentFiles(IReadOnlyCollection<Directory> directories, Boolean includeSubDirectories);
-
-        FileState[] GetSimilarFileStates(FileState fileState);
+        IReadOnlyCollection<FileInfo> GetDirectoryCurrentFiles(IReadOnlyCollection<Directory> directories, Boolean includeSubDirectories);
 
         IReadOnlyCollection<Directory> GetSubDirectories(HashSet<Inspection> inspections, HashSet<Directory> directories, Boolean doRecursively);
 

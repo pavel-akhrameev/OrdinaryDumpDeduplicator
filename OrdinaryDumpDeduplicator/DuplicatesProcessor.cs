@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 using OrdinaryDumpDeduplicator.Common;
-
-using FilesWithSameContent = System.Collections.Generic.IDictionary<OrdinaryDumpDeduplicator.Common.BlobInfo, OrdinaryDumpDeduplicator.Common.File[]>;
 
 namespace OrdinaryDumpDeduplicator
 {
@@ -29,90 +26,56 @@ namespace OrdinaryDumpDeduplicator
 
         public DuplicateReport GetDuplicatesFound(IReadOnlyCollection<DataLocation> dataLocations)
         {
-            FilesWithSameContent duplicatesByHash;
-            if (dataLocations != null && dataLocations.Count > 0)
+            if (dataLocations == null || dataLocations.Count == 0)
             {
-                // TODO: Если dataLocations задано несколько, или хотя бы одна, то надо искать по файлам из dataLocations.
-
-                duplicatesByHash = _dataController.GetDuplicatesByHash(dataLocations); // TODO
-            }
-            else
-            {
-                duplicatesByHash = _dataController.GetDuplicatesByHash(dataLocations);
+                throw new ArgumentNullException(nameof(dataLocations), "A null or empty collection is not allowed."); // TODO: exception
             }
 
-            HashSet<Directory> directoriesForIsolatedDuplicates = DataStructureHelper.GetDirectoriesForIsolatedDuplicates(dataLocations);
+            IReadOnlyCollection<FileInfo> duplicatesFound = _dataController.GetDuplicates(dataLocations);
+            Dictionary<DataLocation, Directory> directoriesForIsolatedDuplicates = GetDirectoriesForIsolatedDuplicates(dataLocations);
+            var existingDirectoriesForIsolatedDuplicates = new HashSet<Directory>(directoriesForIsolatedDuplicates.Values);
+            SetDuplicateSortToFileInfo(duplicatesFound, directoriesForIsolatedDuplicates);
+            IReadOnlyCollection<SameContentFilesInfo> duplicates = GroupFilesWithSameContent(duplicatesFound);
 
-            // Достаются текущие файлы из 'duplicates found'. Все уникальные из них нужно показать пользователю, как возможную проблему.
-            FilesWithSameContent filesFromIsolatedDuplicatesFolders = _dataController.GetDirectoryCurrentFiles(directoriesForIsolatedDuplicates, includeSubDirectories: true);
+            // Current files from 'isolated duplicates' directories.
+            IReadOnlyCollection<FileInfo> filesFromIsolatedDuplicatesFolders = _dataController.GetDirectoryCurrentFiles(existingDirectoriesForIsolatedDuplicates, includeSubDirectories: true);
+            SetIsolatedDuplicateSortToFileInfo(filesFromIsolatedDuplicatesFolders);
+            IReadOnlyCollection<SameContentFilesInfo> isolatedDuplicates = GroupFilesWithSameContent(filesFromIsolatedDuplicatesFolders);
 
-            SeparateFoundDuplicatesIntoCategories(duplicatesByHash, filesFromIsolatedDuplicatesFolders, out FilesWithSameContent newDuplicatesByHash,
-                out FilesWithSameContent partiallyIsolatedDuplicates, out FilesWithSameContent uniqueIsolatedFiles);
+            SeparateFoundDuplicatesIntoCategories(duplicates, isolatedDuplicates, out HashSet<SameContentFilesInfo> unprocessedDuplicates,
+                out HashSet<SameContentFilesInfo> allDuplicatesIsolated, out HashSet<SameContentFilesInfo> uniqueIsolatedFiles);
 
-            return new DuplicateReport(dataLocations, newDuplicatesByHash, partiallyIsolatedDuplicates, uniqueIsolatedFiles, directoriesForIsolatedDuplicates);
+            return new DuplicateReport(dataLocations, unprocessedDuplicates, allDuplicatesIsolated, uniqueIsolatedFiles);
         }
 
-        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, HierarchicalObject[] hierarchicalObjects)
+        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
         {
-            String dataLocationPath;
-            if (duplicateReport.DataLocations.Count == 1)
+            // Словарь, у какой DataLocation какой путь к папке 'isolated duplicates'.
+            var directoriesForDuplicates = new Dictionary<DataLocation, String>();
+            foreach (var dataLocation in duplicateReport.DataLocations)
             {
-                DataLocation currentDataLocation = duplicateReport.DataLocations.First();
-                dataLocationPath = currentDataLocation.Path;
-            }
-            else
-            {
-                throw new NotImplementedException(""); // TODO
-            }
-
-            String folderForDuplicates = System.IO.Path.Combine(dataLocationPath, FOLDER_NAME_FOR_DUPLICATES);
-
-            // Note: На данном этапе в виде сущности HierarchicalObjectInReport может быть передан объект следующих типов:
-            // Directory или File.
-
-            var fileObjectsToProcess = new HashSet<HierarchicalObject>();
-            foreach (HierarchicalObject hierarchicalObject in hierarchicalObjects)
-            {
-                // Определить, это папка или файл.
-
-                File file = hierarchicalObject.Object as File;
-                Directory directory = hierarchicalObject.Object as Directory;
-                if (directory != null)
-                {
-                    AddAllSubObjects(hierarchicalObject, fileObjectsToProcess);
-                }
-                else if (file != null)
-                {
-                    fileObjectsToProcess.Add(hierarchicalObject);
-                }
-                else
-                {
-                    throw new ArgumentException($"Unknown type of wrapped object found '{hierarchicalObject}'");
-                }
-            }
-
-            var filesToProcess = new HashSet<File>();
-            foreach (var fileObject in fileObjectsToProcess)
-            {
-                filesToProcess.Add(fileObject.Object as File);
+                String directoryPathForDuplicates = System.IO.Path.Combine(dataLocation.Path, FOLDER_NAME_FOR_DUPLICATES);
+                directoriesForDuplicates.Add(dataLocation, directoryPathForDuplicates);
             }
 
             // Собрать пути в папке для дубликатов для каждого файла.
-            var patchesForDuplicates = new Dictionary<Directory, String>();
-            foreach (File file in filesToProcess)
+            var pathsForDuplicates = new Dictionary<Directory, String>();
+            foreach (FileInfo duplicate in duplicates)
             {
-                Directory parentDirectory = file.ParentDirectory;
-                if (!patchesForDuplicates.ContainsKey(parentDirectory))
+                Directory parentDirectory = duplicate.File.ParentDirectory;
+                if (!pathsForDuplicates.ContainsKey(parentDirectory))
                 {
-                    String relativeDirectoyPath = FileSystemHelper.GetRelativePath(dataLocationPath, parentDirectory.Path);
+                    DataLocation dataLocation = duplicate.DataLocation;
+                    String folderForDuplicates = directoriesForDuplicates[dataLocation];
+                    String relativeDirectoyPath = FileSystemHelper.GetRelativePath(dataLocation.Path, parentDirectory.Path);
                     String folderForDuplicate = FileSystemHelper.GetCombinedPath(folderForDuplicates, relativeDirectoyPath);
 
-                    patchesForDuplicates.Add(parentDirectory, folderForDuplicate);
+                    pathsForDuplicates.Add(parentDirectory, folderForDuplicate);
                 }
             }
 
             // Подготовить папки для дубликатов.
-            foreach (String patchForDuplicates in patchesForDuplicates.Values)
+            foreach (String patchForDuplicates in pathsForDuplicates.Values)
             {
                 if (!System.IO.Directory.Exists(patchForDuplicates))
                 {
@@ -120,9 +83,10 @@ namespace OrdinaryDumpDeduplicator
                 }
             }
 
-            foreach (File file in filesToProcess)
+            foreach (FileInfo duplicate in duplicates)
             {
-                String folderPathForDuplicate = patchesForDuplicates[file.ParentDirectory];
+                File file = duplicate.File;
+                String folderPathForDuplicate = pathsForDuplicates[file.ParentDirectory];
 
                 String destinationFilePath = FileSystemHelper.GetCombinedPath(folderPathForDuplicate, file.Name);
                 try
@@ -136,19 +100,19 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, File[] filesToDelete)
+        public void DeleteDuplicate(DuplicateReport duplicateReport, FileInfo[] filesToDelete)
         {
             IReadOnlyCollection<DataLocation> currentDataLocations = duplicateReport.DataLocations;
             HashSet<Directory> directoriesForIsolatedDuplicates = DataStructureHelper.GetDirectoriesForIsolatedDuplicates(currentDataLocations);
 
             // Собираем только те файлы, которые находятся в папках 'isolated duplicates'.
             var filesSuitableForDeletion = new HashSet<File>();
-            foreach (File file in filesToDelete)
+            foreach (FileInfo duplicate in filesToDelete)
             {
                 Boolean isFileFromIsolatedDuplicatesDir = false;
                 foreach (Directory isolatedDuplicatesDir in directoriesForIsolatedDuplicates)
                 {
-                    if (_dataController.IsFileFromDirectory(isolatedDuplicatesDir, file))
+                    if (_dataController.IsFileFromDirectory(isolatedDuplicatesDir, duplicate.File))
                     {
                         isFileFromIsolatedDuplicatesDir = true;
                         break;
@@ -157,7 +121,7 @@ namespace OrdinaryDumpDeduplicator
 
                 if (isFileFromIsolatedDuplicatesDir)
                 {
-                    filesSuitableForDeletion.Add(file);
+                    filesSuitableForDeletion.Add(duplicate.File);
                 }
                 else
                 {
@@ -180,95 +144,157 @@ namespace OrdinaryDumpDeduplicator
 
         #endregion
 
-        #region Private static methods
+        #region Private methods
 
-        private static void SeparateFoundDuplicatesIntoCategories(
-            FilesWithSameContent duplicatesByHash,
-            FilesWithSameContent filesFromIsolatedDuplicatesFolder,
-            out FilesWithSameContent newDuplicatesByHash,
-            out FilesWithSameContent partiallyIsolatedDuplicates,
-            out FilesWithSameContent uniqueIsolatedFiles)
+        private Dictionary<DataLocation, Directory> GetDirectoriesForIsolatedDuplicates(IEnumerable<DataLocation> dataLocations)
         {
-            newDuplicatesByHash = new Dictionary<BlobInfo, File[]>();
-            partiallyIsolatedDuplicates = new Dictionary<BlobInfo, File[]>();
-            uniqueIsolatedFiles = new Dictionary<BlobInfo, File[]>();
-
-            var isolatedDirectories = new HashSet<Directory>();
-            foreach (KeyValuePair<BlobInfo, File[]> sameContentIsolatedFiles in filesFromIsolatedDuplicatesFolder)
+            var existingDirectoriesForIsolatedDuplicates = new Dictionary<DataLocation, Directory>();
+            foreach (var dataLocation in dataLocations)
             {
-                File[] isolatedFiles = sameContentIsolatedFiles.Value;
-                foreach (File isolatedFile in isolatedFiles)
+                Directory directoryForIsolatedDuplicates = _dataController.FindDirectory(dataLocation.Directory, FOLDER_NAME_FOR_DUPLICATES);
+                if (directoryForIsolatedDuplicates == null)
                 {
-                    isolatedDirectories.Add(isolatedFile.ParentDirectory);
+                    String duplicatesFolderPath = System.IO.Path.Combine(dataLocation.Path, DuplicatesProcessor.FOLDER_NAME_FOR_DUPLICATES);
+                    directoryForIsolatedDuplicates = _dataController.FindDirectory(duplicatesFolderPath);
+                }
+
+                if (directoryForIsolatedDuplicates != null)
+                {
+                    existingDirectoriesForIsolatedDuplicates.Add(dataLocation, directoryForIsolatedDuplicates);
                 }
             }
 
-            foreach (KeyValuePair<BlobInfo, File[]> sameContentFiles in duplicatesByHash)
+            return existingDirectoriesForIsolatedDuplicates;
+        }
+
+        private void SetDuplicateSortToFileInfo(IEnumerable<FileInfo> files, Dictionary<DataLocation, Directory> directoriesForIsolatedDuplicates)
+        {
+            foreach (FileInfo fileInfo in files)
             {
-                BlobInfo blobInfo = sameContentFiles.Key;
-                if (filesFromIsolatedDuplicatesFolder.ContainsKey(blobInfo))
+                DuplicateSort duplicateSort;
+                if (directoriesForIsolatedDuplicates.TryGetValue(fileInfo.DataLocation, out Directory directoryForIsolatedDuplicates))
                 {
-                    File[] originalLocationFiles = sameContentFiles.Value;
-                    if (DoTheseDirectoriesContainAllFiles(isolatedDirectories, originalLocationFiles)) // Среди таких блобов могут быть те, у которых вообще нет файлов на оригинальных локациях.
-                    {
-                        uniqueIsolatedFiles.Add(sameContentFiles);
-                    }
-                    else
-                    {
-                        partiallyIsolatedDuplicates.Add(sameContentFiles);
-                    }
+                    Boolean isFileInIsolatedDuplicatesDirectory = _dataController.IsFileFromDirectory(directoryForIsolatedDuplicates, fileInfo.File);
+
+                    duplicateSort = isFileInIsolatedDuplicatesDirectory
+                        ? DuplicateSort.IsolatedDuplicate
+                        : DuplicateSort.InOriginalLocation;
                 }
                 else
                 {
-                    newDuplicatesByHash.Add(sameContentFiles);
+                    duplicateSort = DuplicateSort.InOriginalLocation;
+                }
+
+                fileInfo.SetDuplicateSort(duplicateSort);
+            }
+        }
+
+        #region Private static methods
+
+        private static void SeparateFoundDuplicatesIntoCategories(
+            IReadOnlyCollection<SameContentFilesInfo> duplicatesByHash,
+            IReadOnlyCollection<SameContentFilesInfo> filesFromIsolatedDuplicatesFolder,
+            out HashSet<SameContentFilesInfo> hasUnprocessedDuplicates,
+            out HashSet<SameContentFilesInfo> allDuplicatesIsolated,
+            out HashSet<SameContentFilesInfo> uniqueIsolatedFiles)
+        {
+            hasUnprocessedDuplicates = new HashSet<SameContentFilesInfo>();
+            allDuplicatesIsolated = new HashSet<SameContentFilesInfo>();
+            uniqueIsolatedFiles = new HashSet<SameContentFilesInfo>();
+
+            var blobsOnOriginalLocation = new HashSet<BlobInfo>();
+            foreach (SameContentFilesInfo sameContentFilesInfo in duplicatesByHash)
+            {
+                BlobInfo blobInfo = sameContentFilesInfo.BlobInfo;
+
+                // Among such duplicates (blobs) there may be those that have no files in the original locations at all.
+                IReadOnlyCollection<FileInfo> sameContentFiles = sameContentFilesInfo.Duplicates;
+
+                Int32 originalLocationFilesCount = 0;
+                Int32 isolatedDuplicatesCount = 0;
+                foreach (FileInfo fileInfo in sameContentFiles)
+                {
+                    switch (fileInfo.Sort)
+                    {
+                        case DuplicateSort.InOriginalLocation:
+                            originalLocationFilesCount++;
+                            break;
+                        case DuplicateSort.IsolatedDuplicate:
+                            isolatedDuplicatesCount++;
+                            break;
+                    }
+                }
+
+                if (originalLocationFilesCount > 0)
+                {
+                    blobsOnOriginalLocation.Add(blobInfo);
+
+                    if (originalLocationFilesCount == 1)
+                    {
+                        allDuplicatesIsolated.Add(sameContentFilesInfo);
+                    }
+                    else
+                    {
+                        hasUnprocessedDuplicates.Add(sameContentFilesInfo);
+                    }
+                }
+                else if (isolatedDuplicatesCount > 0)
+                {
+                    uniqueIsolatedFiles.Add(sameContentFilesInfo);
+                }
+                else
+                {
+                    throw new Exception(""); // TODO
                 }
             }
 
-            foreach (KeyValuePair<BlobInfo, File[]> sameContentIsolatedFiles in filesFromIsolatedDuplicatesFolder)
+            foreach (SameContentFilesInfo sameContentIsolatedFiles in filesFromIsolatedDuplicatesFolder)
             {
-                BlobInfo blobInfo = sameContentIsolatedFiles.Key;
-                File[] files = sameContentIsolatedFiles.Value;
-
-                if (!duplicatesByHash.ContainsKey(blobInfo))
+                if (!blobsOnOriginalLocation.Contains(sameContentIsolatedFiles.BlobInfo))
                 {
                     uniqueIsolatedFiles.Add(sameContentIsolatedFiles);
                 }
             }
         }
 
-        private static Boolean DoTheseDirectoriesContainAllFiles(HashSet<Directory> directories, IEnumerable<File> files)
+        private static IReadOnlyCollection<SameContentFilesInfo> GroupFilesWithSameContent(IReadOnlyCollection<FileInfo> files)
         {
-            foreach (File file in files)
+            var blobGroups = new Dictionary<BlobInfo, HashSet<FileInfo>>();
+            foreach (FileInfo fileInfo in files)
             {
-                var directoryToCheck = file.ParentDirectory;
-                if (!directories.Contains(directoryToCheck))
+                BlobInfo blobInfo = fileInfo.BlobInfo;
+                if (!blobGroups.ContainsKey(blobInfo))
                 {
-                    return false;
+                    blobGroups[blobInfo] = new HashSet<FileInfo>();
                 }
+
+                var duplicateFiles = blobGroups[blobInfo];
+                duplicateFiles.Add(fileInfo);
+
             }
 
-            return true;
+            var result = new HashSet<SameContentFilesInfo>();
+            foreach (KeyValuePair<BlobInfo, HashSet<FileInfo>> blobGroup in blobGroups)
+            {
+                BlobInfo blobInfo = blobGroup.Key;
+                HashSet<FileInfo> duplicatesSet = blobGroup.Value;
+                var duplicatesInfo = new SameContentFilesInfo(blobInfo, duplicatesSet);
+
+                result.Add(duplicatesInfo);
+            }
+
+            return result;
         }
 
-        private static void AddAllSubObjects(HierarchicalObject hierarchicalObject, ICollection<HierarchicalObject> subObjects)
+        private static void SetIsolatedDuplicateSortToFileInfo(IEnumerable<FileInfo> files)
         {
-            foreach (var childObject in hierarchicalObject.ChildObjects)
+            foreach (var fileInfo in files)
             {
-                switch (childObject.Object)
-                {
-                    case Directory directory:
-                        AddAllSubObjects(childObject, subObjects);
-                        break;
-
-                    case File file:
-                        subObjects.Add(childObject);
-                        break;
-
-                    default:
-                        throw new ArgumentException($"Unknown type of wrapped object found '{childObject}'");
-                }
+                fileInfo.SetDuplicateSort(DuplicateSort.IsolatedDuplicate);
             }
         }
+
+        #endregion
 
         #endregion
     }

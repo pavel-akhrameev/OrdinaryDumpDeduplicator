@@ -82,7 +82,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.splitContainer1.Size = new System.Drawing.Size(651, 327);
             this.splitContainer1.SplitterDistance = 248;
             this.splitContainer1.SplitterWidth = 3;
-            this.splitContainer1.TabIndex = 8;
+            this.splitContainer1.TabIndex = 9;
             // 
             // listView1
             // 
@@ -103,7 +103,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.listView1.MultiSelect = false;
             this.listView1.Name = "listView1";
             this.listView1.Size = new System.Drawing.Size(453, 242);
-            this.listView1.TabIndex = 8;
+            this.listView1.TabIndex = 7;
             this.listView1.UseCompatibleStateImageBehavior = false;
             this.listView1.View = System.Windows.Forms.View.Details;
             // 
@@ -140,20 +140,20 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.groupBox1.Location = new System.Drawing.Point(462, 3);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Size = new System.Drawing.Size(186, 104);
-            this.groupBox1.TabIndex = 1;
+            this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Add data location";
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(6, 19);
+            this.textBox1.Location = new System.Drawing.Point(6, 46);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(174, 20);
             this.textBox1.TabIndex = 2;
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(77, 46);
+            this.button1.Location = new System.Drawing.Point(77, 19);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(103, 23);
             this.button1.TabIndex = 3;
@@ -166,7 +166,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.button2.Location = new System.Drawing.Point(6, 75);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(126, 23);
-            this.button2.TabIndex = 4;
+            this.button2.TabIndex = 1;
             this.button2.Text = "Add data location";
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
@@ -179,7 +179,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.groupBox2.Location = new System.Drawing.Point(462, 113);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(186, 104);
-            this.groupBox2.TabIndex = 5;
+            this.groupBox2.TabIndex = 4;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Analyze";
             // 
@@ -188,7 +188,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.button3.Location = new System.Drawing.Point(6, 19);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(126, 23);
-            this.button3.TabIndex = 6;
+            this.button3.TabIndex = 5;
             this.button3.Text = "Rescan data location";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
@@ -198,7 +198,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.button4.Location = new System.Drawing.Point(6, 48);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(126, 23);
-            this.button4.TabIndex = 7;
+            this.button4.TabIndex = 6;
             this.button4.Text = "Find duplicates";
             this.button4.UseVisualStyleBackColor = true;
             this.button4.Click += new System.EventHandler(this.button4_Click);
@@ -212,7 +212,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.listView2.Location = new System.Drawing.Point(3, 3);
             this.listView2.Name = "listView2";
             this.listView2.Size = new System.Drawing.Size(645, 70);
-            this.listView2.TabIndex = 9;
+            this.listView2.TabIndex = 8;
             this.listView2.UseCompatibleStateImageBehavior = false;
             // 
             // textBox2

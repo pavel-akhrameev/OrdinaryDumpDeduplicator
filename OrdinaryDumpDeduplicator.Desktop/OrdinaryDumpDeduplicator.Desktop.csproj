@@ -60,11 +60,11 @@
     </Compile>
     <Compile Include="Interfaces\IDuplicatesViewModel.cs" />
     <Compile Include="Interfaces\IMainViewModel.cs" />
+    <Compile Include="ItemToView.cs" />
     <Compile Include="OrdinaryDumpDeduplicatorDesktop.cs" />
     <Compile Include="OrdinaryDumpDeduplicatorDesktop.Logic.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TreeViewItem.cs" />
     <Compile Include="WindowsManager.cs" />
   </ItemGroup>
   <ItemGroup>
