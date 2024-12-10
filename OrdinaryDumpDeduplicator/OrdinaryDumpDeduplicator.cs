@@ -10,6 +10,7 @@ namespace OrdinaryDumpDeduplicator
     {
         private readonly DuplicatesProcessor _duplicatesProcessor;
         private readonly DataControllerSimple _dataController;
+        private readonly FileSystemProvider _fileSystemProvider;
 
         private DataLocation _currentDataLocation;
 
@@ -18,7 +19,8 @@ namespace OrdinaryDumpDeduplicator
         public OrdinaryDumpDeduplicator()
         {
             this._dataController = new DataControllerSimple();
-            this._duplicatesProcessor = new DuplicatesProcessor(_dataController);
+            this._fileSystemProvider = new FileSystemProvider();
+            this._duplicatesProcessor = new DuplicatesProcessor(_dataController, _fileSystemProvider);
             this._currentDataLocation = null;
         }
 
@@ -31,16 +33,17 @@ namespace OrdinaryDumpDeduplicator
 
         #region Public methods
 
-        public DataLocation AddDataLocation(String directoryPath)
+        public IReadOnlyCollection<DataLocation> AddDataLocation(String directoryPath)
         {
-            // TODO: check path provided.
+            _fileSystemProvider.CheckPathValid(directoryPath);
 
-            var directoryInfo = new System.IO.DirectoryInfo(directoryPath);
-            var directory = new Directory(directoryInfo.Name, parentDirectory: null, directoryPath);
+            var directory = _fileSystemProvider.GetDirectoryInfo(directoryPath, parentDirectory: null);
             _dataController.AddDirectory(directory);
 
-            DataLocation dataLocation = GetDataLocation(directory);
-            return dataLocation;
+            DataLocation newDataLocation = GetOrCreateDataLocation(directory);
+            IReadOnlyCollection<DataLocation> dataLocations = _dataController.GetDataLocations();
+
+            return dataLocations;
         }
 
         public DataLocation DoInspection(DataLocation dataLocation)
@@ -82,7 +85,28 @@ namespace OrdinaryDumpDeduplicator
             return _currentDataLocation;
         }
 
-        public void ComputeHashesOfFiles(IReadOnlyCollection<FileState> statesOfFiles, OperationProgressCounter<IntegerDoubleValue> progressCounter)
+        public DuplicateReport GetDuplicatesFound(IReadOnlyCollection<DataLocation> dataLocations)
+        {
+            DuplicateReport duplicateReport = _duplicatesProcessor.GetDuplicatesFound(dataLocations);
+            return duplicateReport;
+        }
+
+        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
+        {
+            _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, duplicates);
+        }
+
+        public void DeleteDuplicate(DuplicateReport duplicateReport, FileInfo[] filesToDelete)
+        {
+            //var fileObjectsToProcess = GetFiles(ItemToViews);
+            _duplicatesProcessor.DeleteDuplicate(duplicateReport, filesToDelete);
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private void ComputeHashesOfFiles(IReadOnlyCollection<FileState> statesOfFiles, OperationProgressCounter<IntegerDoubleValue> progressCounter)
         {
             foreach (FileState fileState in statesOfFiles)
             {
@@ -94,10 +118,12 @@ namespace OrdinaryDumpDeduplicator
                     blobInfo = ComputeAndSaveBlobInfo(fileState.File.Path);
                     fileStatus = FileStatus.New;
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
                     blobInfo = BlobInfo.BrokenBlobInfo;
                     fileStatus = FileStatus.Unreadable;
+
+                    String exceptionMessage = exception.Message;
                 }
                 finally
                 {
@@ -112,43 +138,31 @@ namespace OrdinaryDumpDeduplicator
             progressCounter.FinishOperation(DateTime.Now);
         }
 
-        public BlobInfo ComputeAndSaveBlobInfo(String path)
+        private BlobInfo ComputeAndSaveBlobInfo(String filePath)
         {
             BlobInfo blobInfo;
 
             try
             {
-                Byte[] sha1HashSum = FsUtils.ComputeSha1Hash(path, out Int64 fileLength);
+                Byte[] sha1HashSum;
+                Int64 fileLength;
+                using (System.IO.FileStream fileStream = _fileSystemProvider.GetFileStream(filePath))
+                {
+                    sha1HashSum = FsUtils.ComputeSha1Hash(fileStream, out fileLength);
+                }
+
                 blobInfo = BlobInfo.Create(fileLength, sha1HashSum);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 blobInfo = BlobInfo.BrokenBlobInfo;
+
+                String exceptionMessage = exception.Message;
             }
 
             _dataController.AddBlobInfo(blobInfo);
             return blobInfo;
         }
-
-        public DuplicateReport GetDuplicatesFound(IReadOnlyCollection<DataLocation> dataLocations)
-        {
-            DuplicateReport duplicateReport = _duplicatesProcessor.GetDuplicatesFound(dataLocations);
-            return duplicateReport;
-        }
-
-        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, HierarchicalObject[] hierarchicalObjects)
-        {
-            _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, hierarchicalObjects);
-        }
-
-        public void DeleteDuplicate(DuplicateReport duplicateReport, HierarchicalObject hierarchicalObject)
-        {
-            _duplicatesProcessor.DeleteDuplicate(duplicateReport, hierarchicalObject);
-        }
-
-        #endregion
-
-        #region Private methods
 
         private IReadOnlyCollection<FileState> GetAttributesOfFiles(IReadOnlyCollection<File> files, Inspection inspection, OperationProgressCounter<IntegerSingleValue> progressCounter)
         {
@@ -164,7 +178,7 @@ namespace OrdinaryDumpDeduplicator
 
                 try
                 {
-                    var fileInfo = new System.IO.FileInfo(file.Path);
+                    System.IO.FileInfo fileInfo = _fileSystemProvider.GetFileInfo(file);
 
                     var status = FileStatus.Unknown;
                     fileState = new FileState(file, inspection, previousState: null, fileInfo.Length, status, fileInfo.CreationTime, fileInfo.LastWriteTime);
@@ -183,15 +197,16 @@ namespace OrdinaryDumpDeduplicator
                     progressCounter.IncrementValue();
                 }
 
-                progressCounter.FinishOperation(DateTime.Now);
                 _dataController.AddFileState(fileState);
                 result.Add(fileState);
             }
 
+            progressCounter.FinishOperation(DateTime.Now);
+
             return result;
         }
 
-        private DataLocation GetDataLocation(Directory directory)
+        private DataLocation GetOrCreateDataLocation(Directory directory)
         {
             DataLocation dataLocation;
             IReadOnlyCollection<DataLocation> dataLocations = _dataController.GetDataLocations(new[] { directory });

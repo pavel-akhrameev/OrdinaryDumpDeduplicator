@@ -38,7 +38,7 @@ namespace OrdinaryDumpDeduplicator
             {
                 var directoryInfo = new System.IO.DirectoryInfo(duplicatesFolderPath);
 
-                directoryForDuplicates = new Directory(directoryInfo.Name, dataLocation.RootDirectory); // TODO: check
+                directoryForDuplicates = new Directory(directoryInfo.Name, dataLocation.Directory); // TODO check: создание новой директории, которой нет в БД.
             }
             else
             {

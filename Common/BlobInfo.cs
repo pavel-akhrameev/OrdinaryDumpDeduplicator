@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace OrdinaryDumpDeduplicator.Common
 {
-    public class BlobInfo
+    public class BlobInfo : IEquatable<BlobInfo>
     {
         public const Int32 LENGTH = 20;
 
@@ -12,6 +12,8 @@ namespace OrdinaryDumpDeduplicator.Common
 
         private readonly Int64 _size;
         private readonly Byte[] _sha1Hash;
+
+        private String _hexString;
 
         #region Constructors and creators
 
@@ -24,7 +26,7 @@ namespace OrdinaryDumpDeduplicator.Common
 
             if (sha1Digest == null)
             {
-                throw new ArgumentNullException("sha1Digest");
+                throw new ArgumentNullException(nameof(sha1Digest));
             }
 
             if (sha1Digest.Length != 20)
@@ -34,6 +36,7 @@ namespace OrdinaryDumpDeduplicator.Common
 
             _size = size;
             _sha1Hash = sha1Digest;
+            _hexString = null;
         }
 
         public BlobInfo(Int64 size, IEnumerable<Byte> sha1Digest) : this(size, MakeArray(sha1Digest)) { }
@@ -108,6 +111,20 @@ namespace OrdinaryDumpDeduplicator.Common
 
         public Int64 Size => _size;
 
+        public String HexString
+        {
+            get
+            {
+                if (_hexString == null)
+                {
+                    var hexString = BitConverter.ToString(_sha1Hash);
+                    _hexString = hexString.Replace("-", String.Empty);
+                }
+
+                return _hexString;
+            }
+        }
+
         #endregion
 
         #region Overrides of object
@@ -171,12 +188,9 @@ namespace OrdinaryDumpDeduplicator.Common
 
         public override String ToString()
         {
-            String hexString = BitConverter.ToString(_sha1Hash);
-            hexString.Replace("-", String.Empty);
-
             var dataSizeString = Helper.GetDataSizeString(_size);
 
-            return $"{dataSizeString} | {hexString}";
+            return $"{dataSizeString} | {HexString}";
         }
 
         #endregion

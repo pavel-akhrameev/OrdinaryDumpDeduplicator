@@ -9,9 +9,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
         public AboutBox()
         {
             InitializeComponent();
-            this.Text = String.Format("About {0}", AssemblyTitle);
+            this.Text = $"About {AssemblyTitle}";
             this.labelProductName.Text = AssemblyProduct;
-            this.labelVersion.Text = String.Format("Version: {0} (experimental prototype)", AssemblyVersion);
+            this.labelVersion.Text = $"Version: {AssemblyVersion} (experimental prototype)";
             this.labelCopyright.Text = AssemblyCopyright;
             //this.textBoxDescription.Text = AssemblyDescription;
         }

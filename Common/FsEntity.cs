@@ -2,7 +2,7 @@
 
 namespace OrdinaryDumpDeduplicator.Common
 {
-    public abstract class FsEntity
+    public abstract class FsEntity: IEquatable<FsEntity>
     {
         #region Private fields
 
@@ -42,7 +42,7 @@ namespace OrdinaryDumpDeduplicator.Common
                 if (_path == null)
                 {
                     _path = (_parentDirectory != null)
-                        ? System.IO.Path.Combine(_parentDirectory.Path, _name.ToString())
+                        ? System.IO.Path.Combine(_parentDirectory.Path, _name)
                         : _name;
                 }
 
@@ -54,7 +54,7 @@ namespace OrdinaryDumpDeduplicator.Common
 
         #region Overrides of object
 
-        public override bool Equals(object obj)
+        public override Boolean Equals(object obj)
         {
             if (obj == null)
             {
@@ -67,13 +67,19 @@ namespace OrdinaryDumpDeduplicator.Common
                 return false;
             }
 
-            var isEqual = this._name.Equals(other._name) &&
-                ((this._parentDirectory == null && other._parentDirectory == null) ||
-                  this._parentDirectory.Equals(other._parentDirectory));
+            return Equals(other);
+        }
+
+        public Boolean Equals(FsEntity other)
+        {
+            var isEqual = other != null && this._name.Equals(other._name) &&
+                ((this._parentDirectory != null && this._parentDirectory.Equals(other._parentDirectory)) ||
+                    this._parentDirectory == null && other._parentDirectory == null);
+
             return isEqual;
         }
 
-        public override int GetHashCode()
+        public override Int32 GetHashCode()
         {
             var hashCode = _parentDirectory != null
                 ? _name.GetHashCode() ^ _parentDirectory.GetHashCode()

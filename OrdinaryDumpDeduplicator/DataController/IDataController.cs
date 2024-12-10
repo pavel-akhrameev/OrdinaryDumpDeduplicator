@@ -1,33 +1,44 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using OrdinaryDumpDeduplicator.Common;
 
 namespace OrdinaryDumpDeduplicator
 {
     public interface IDataController
     {
-        IReadOnlyCollection<File> GetFilesOfDirectory(Directory directory, Boolean includeSubDirectories);
-
         void AddFile(File file);
 
         void AddDirectory(Directory directory);
 
-        IReadOnlyCollection<DataLocation> GetDataLocations(IEnumerable<Directory> directories);
+        Directory FindDirectory(Directory parentDirectory, String name);
+
+        Directory FindDirectory(String directoryPath);
 
         void AddDataLocation(DataLocation dataLocation);
+
+        IReadOnlyCollection<DataLocation> GetDataLocations(IEnumerable<Directory> directories);
+
+        IReadOnlyCollection<DataLocation> GetDataLocations();
 
         void AddInspection(Inspection inspection);
 
         void UpdateInspection(Inspection inspection);
 
-        FileState[] GetSimilarFileStates(FileState fileState);
+        HashSet<Inspection> GetLastInspections(IEnumerable<DataLocation> dataLocations);
 
         void AddFileState(FileState fileState);
 
         void UpdateFileState(FileState fileState);
 
-        Dictionary<BlobInfo, File[]> GetDuplicatesByHash(IEnumerable<DataLocation> dataLocations);
+        void AddBlobInfo(BlobInfo blobInfo);
 
-        Dictionary<BlobInfo, File[]> GetDirectoryCurrentFiles(IReadOnlyCollection<Directory> directories, Boolean includeSubDirectories);
+        IReadOnlyCollection<FileInfo> GetDuplicates(IEnumerable<DataLocation> dataLocations);
+
+        IReadOnlyCollection<FileInfo> GetDirectoryCurrentFiles(IReadOnlyCollection<Directory> directories, Boolean includeSubDirectories);
+
+        IReadOnlyCollection<Directory> GetSubDirectories(HashSet<Inspection> inspections, HashSet<Directory> directories, Boolean doRecursively);
+
+        Boolean IsFileFromDirectory(Directory directory, File file);
     }
 }

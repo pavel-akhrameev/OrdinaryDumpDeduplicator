@@ -7,26 +7,23 @@ namespace OrdinaryDumpDeduplicator.Common
     {
         #region Private fields
 
-        private readonly Int32? _id;
+        private readonly Dictionary<String, Directory> _subDirectories;
 
-        private readonly Dictionary<string, Directory> _subDirectories;
-
-        private readonly Dictionary<string, File> _files;
+        private readonly Dictionary<String, File> _files;
 
         #endregion
 
         #region Constructors
 
-        public Directory(String name, Directory parentDirectory, Int32? id = null)
+        public Directory(String name, Directory parentDirectory)
             : base(name, parentDirectory)
         {
-            this._subDirectories = new Dictionary<string, Directory>();
-            this._files = new Dictionary<string, File>();
-            this._id = id;
+            this._subDirectories = new Dictionary<String, Directory>();
+            this._files = new Dictionary<String, File>();
         }
 
-        public Directory(String name, Directory parentDirectory, String fullPath, Int32? id = null)
-            : this(name, parentDirectory, id)
+        public Directory(String name, Directory parentDirectory, String fullPath)
+            : this(name, parentDirectory)
         {
             SetPath(fullPath);
         }
@@ -35,34 +32,19 @@ namespace OrdinaryDumpDeduplicator.Common
 
         #region Public properties
 
-        public Int32? Id => _id;
-
         public IReadOnlyCollection<Directory> SubDirectories => _subDirectories.Values;
 
         public IReadOnlyCollection<File> Files => _files.Values;
 
         #endregion
 
-        #region Public methods
-
-        public bool TryGetDirectory(String directoryName, out Directory directory)
-        {
-            var result = _subDirectories.TryGetValue(directoryName, out directory);
-            return result;
-        }
-
-        public bool TryGetFile(String fileName, out File file)
-        {
-            var result = _files.TryGetValue(fileName, out file);
-            return result;
-        }
+        #region Internal methods
 
         internal Directory AddSubDirectory(Directory directory) // Метод используется в FsUtils
         {
             var directoryName = directory.Name;
 
-            Directory subDirectory;
-            if (_subDirectories.TryGetValue(directoryName, out subDirectory))
+            if (_subDirectories.TryGetValue(directoryName, out Directory subDirectory))
             {
                 throw new InvalidOperationException();
             }
@@ -79,8 +61,7 @@ namespace OrdinaryDumpDeduplicator.Common
         {
             var fileName = file.Name;
 
-            File subFile;
-            if (_files.TryGetValue(fileName, out subFile))
+            if (_files.TryGetValue(fileName, out File subFile))
             {
                 throw new InvalidOperationException();
             }

@@ -6,6 +6,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
     internal class WindowsManager
     {
         private MainForm _mainForm;
+        private DuplicateReportForm _duplicatesForm;
+
         private AboutBox _aboutBox;
 
         #region Constructor
@@ -17,6 +19,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         public void Initialize()
         {
             this._mainForm = new MainForm();
+            this._duplicatesForm = new DuplicateReportForm();
             this._aboutBox = new AboutBox();
         }
 
@@ -25,6 +28,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
         #region Public properties
 
         public IMainViewModel MainViewModel => _mainForm;
+
+        public IDuplicatesViewModel DuplicatesViewModel => _duplicatesForm;
 
         #endregion
 
@@ -38,6 +43,19 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
 
             return _mainForm;
+        }
+
+        public void ShowDuplicatesForm()
+        {
+            if (!_duplicatesForm.Visible)
+            {
+                _duplicatesForm.Show(_mainForm);
+            }
+        }
+
+        public void HideDuplicatesForm()
+        {
+            _duplicatesForm.Hide();
         }
 
         public void ShowAboutBox()
@@ -55,6 +73,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         public void CloseAllAdditionalForms()
         {
+            _duplicatesForm.Close();
             _aboutBox.Close();
         }
 

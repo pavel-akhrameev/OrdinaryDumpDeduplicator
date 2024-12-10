@@ -8,12 +8,16 @@ namespace OrdinaryDumpDeduplicator
 {
     internal class DataControllerSimple : IDataController
     {
+        #region Private properties
+
         private readonly HashSet<File> _files;
         private readonly HashSet<Directory> _directories;
         private readonly HashSet<DataLocation> _dataLocations;
         private readonly HashSet<Inspection> _inspections;
         private readonly HashSet<FileState> _fileStates;
         private readonly HashSet<BlobInfo> _blobInfos;
+
+        #endregion
 
         #region Constructor and initializer
 
@@ -36,42 +40,6 @@ namespace OrdinaryDumpDeduplicator
 
         #region Public methods
 
-        /// <remarks>Ну ооочень наивная реализация. Перебираем все папки в базе кучу раз.</remarks>
-        public IReadOnlyCollection<Directory> GetSubDirectories(HashSet<Inspection> inspections, HashSet<Directory> directories, Boolean doRecursively)
-        {
-            // TODO: Учесть инспекцию.
-            // (?) А может для директорий инспекции и е важны вовсе. Инспекции важны только для файлов.
-
-            var subDirectories = new List<Directory>();
-            foreach (Directory directoryFromDb in _directories)
-            {
-                if (directories.Contains(directoryFromDb.ParentDirectory))
-                {
-                    subDirectories.Add(directoryFromDb);
-                }
-            }
-
-            if (doRecursively && subDirectories.Count > 0)
-            {
-                var subDirectorieshashSet = new HashSet<Directory>(subDirectories);
-                IReadOnlyCollection<Directory> moreSubDirectories = GetSubDirectories(inspections, subDirectorieshashSet, doRecursively: true);
-                subDirectories.AddRange(moreSubDirectories);
-            }
-
-            return subDirectories;
-        }
-
-        public IReadOnlyCollection<File> GetFilesOfDirectory(Directory directory, Boolean includeSubDirectories)
-        {
-            // TODO: use includeSubDirectories
-
-            File[] filesFound = _files
-                .Where(file => directory.Equals(file.ParentDirectory))
-                .ToArray();
-
-            return filesFound;
-        }
-
         public void AddFile(File file)
         {
             _files.Add(file);
@@ -79,7 +47,16 @@ namespace OrdinaryDumpDeduplicator
 
         public void AddDirectory(Directory directory)
         {
-            _directories.Add(directory);
+            // Вот тут не происходит обновление.
+            if (_directories.Contains(directory))
+            {
+                // Do update.
+
+            }
+            else
+            {
+                _directories.Add(directory);
+            }
 
             foreach (var subDirectory in directory.SubDirectories)
             {
@@ -90,6 +67,31 @@ namespace OrdinaryDumpDeduplicator
             {
                 AddFile(file);
             }
+        }
+
+        public Directory FindDirectory(Directory parentDirectory, String name)
+        {
+            Directory directory = null;
+            if (_directories.Contains(parentDirectory))
+            {
+                directory = parentDirectory.SubDirectories
+                    .FirstOrDefault(subDir => subDir.Name.Equals(name, StringComparison.InvariantCulture));
+            }
+
+            return directory;
+        }
+
+        public Directory FindDirectory(String directoryPath)
+        {
+            Directory directory = _directories
+                .FirstOrDefault(dir => dir.Path.Equals(directoryPath, StringComparison.InvariantCulture));
+
+            return directory;
+        }
+
+        public void AddDataLocation(DataLocation dataLocation)
+        {
+            _dataLocations.Add(dataLocation);
         }
 
         /// <summary>
@@ -107,7 +109,7 @@ namespace OrdinaryDumpDeduplicator
                 var rootDataLocationDirectories = new Dictionary<Directory, DataLocation>();
                 foreach (DataLocation dataLocation in _dataLocations)
                 {
-                    rootDataLocationDirectories.Add(dataLocation.RootDirectory, dataLocation);
+                    rootDataLocationDirectories.Add(dataLocation.Directory, dataLocation);
                 }
 
                 foreach (Directory directory in directories)
@@ -117,16 +119,14 @@ namespace OrdinaryDumpDeduplicator
                         Directory directoryToCheck = directory;
                         while (directoryToCheck != null)
                         {
-                            if (!rootDataLocationDirectories.ContainsKey(directoryToCheck))
+                            if (rootDataLocationDirectories.TryGetValue(directoryToCheck, out var foundDataLocation))
                             {
-                                directoryToCheck = directoryToCheck.ParentDirectory;
+                                foundDataLocations.Add(foundDataLocation);
+                                break;
                             }
                             else
                             {
-                                DataLocation foundDataLocation = rootDataLocationDirectories[directoryToCheck];
-                                foundDataLocations.Add(foundDataLocation);
-
-                                break;
+                                directoryToCheck = directoryToCheck.ParentDirectory;
                             }
                         }
                     }
@@ -143,7 +143,7 @@ namespace OrdinaryDumpDeduplicator
 
                 foreach (DataLocation dataLocation in _dataLocations)
                 {
-                    if (directoriesSet.Contains(dataLocation.RootDirectory))
+                    if (directoriesSet.Contains(dataLocation.Directory))
                     {
                         foundDataLocations.Add(dataLocation);
                     }
@@ -159,9 +159,10 @@ namespace OrdinaryDumpDeduplicator
             return dataLocations;
         }
 
-        public void AddDataLocation(DataLocation dataLocation)
+        public IReadOnlyCollection<DataLocation> GetDataLocations()
         {
-            _dataLocations.Add(dataLocation);
+            List<DataLocation> foundDataLocations = _dataLocations.ToList();
+            return foundDataLocations;
         }
 
         public void AddInspection(Inspection inspection)
@@ -181,11 +182,24 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public FileState[] GetSimilarFileStates(FileState fileState)
+        public HashSet<Inspection> GetLastInspections(IEnumerable<DataLocation> dataLocations)
         {
-            // TODO
+            var dataLocationsSet = new HashSet<DataLocation>(dataLocations);
+            var lastInspections = new Dictionary<DataLocation, Inspection>();
 
-            return new FileState[] { };
+            foreach (Inspection inspection in _inspections)
+            {
+                DataLocation dataLocation = inspection.DataLocation;
+                if (dataLocationsSet.Contains(dataLocation) &&
+                    (!lastInspections.TryGetValue(dataLocation, out Inspection lastInspection) ||
+                    inspection.StartDateTime > lastInspection.StartDateTime))
+                {
+                    lastInspections[dataLocation] = inspection;
+                }
+            }
+
+            var inspectionsSet = new HashSet<Inspection>(lastInspections.Values);
+            return inspectionsSet;
         }
 
         public void AddFileState(FileState fileState)
@@ -206,11 +220,13 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
-        public Dictionary<BlobInfo, File[]> GetDuplicatesByHash(IEnumerable<DataLocation> dataLocations)
+        /// <remarks>DataControllerSimple не знает напрямую, какой файл из какой DataLocation. Но при работе с БД эта информация будет через JOIN.</remarks>
+        public IReadOnlyCollection<FileInfo> GetDuplicates(IEnumerable<DataLocation> dataLocations)
         {
-            var blobGroups = new Dictionary<BlobInfo, List<File>>(); // Все блобы и файлы какие есть.
-            HashSet<Inspection> inspectionsSet = GetLastInspections(dataLocations);
+            var dataLocationSet = new HashSet<DataLocation>(dataLocations);
+            HashSet<Inspection> inspectionsSet = GetLastInspections(dataLocationSet);
 
+            var blobGroups = new Dictionary<BlobInfo, HashSet<File>>(); // Все блобы и файлы какие есть.
             foreach (FileState fileState in _fileStates)
             {
                 if (!inspectionsSet.Contains(fileState.Inspection))
@@ -225,10 +241,10 @@ namespace OrdinaryDumpDeduplicator
                 {
                     if (!blobGroups.ContainsKey(blobInfo))
                     {
-                        blobGroups[blobInfo] = new List<File>();
+                        blobGroups[blobInfo] = new HashSet<File>();
                     }
 
-                    var duplicateFiles = blobGroups[blobInfo];
+                    HashSet<File> duplicateFiles = blobGroups[blobInfo];
                     duplicateFiles.Add(file);
                 }
                 else
@@ -242,18 +258,18 @@ namespace OrdinaryDumpDeduplicator
                 }
             }
 
-            var result = new Dictionary<BlobInfo, File[]>();
-            foreach (KeyValuePair<BlobInfo, List<File>> blobGroup in blobGroups)
+            var result = new List<FileInfo>();
+            foreach (KeyValuePair<BlobInfo, HashSet<File>> blobGroup in blobGroups)
             {
                 if (blobGroup.Value.Count > 1)
                 {
-                    File[] duplicates = blobGroup.Value
-                        .Distinct()
-                        .ToArray();
+                    BlobInfo blobInfo = blobGroup.Key;
+                    HashSet<File> duplicates = blobGroup.Value;
 
-                    if (duplicates.Length > 1)
+                    if (duplicates.Count > 1)
                     {
-                        result.Add(blobGroup.Key, duplicates);
+                        HashSet<FileInfo> duplicatesSet = MakeDuplicatesSet(blobInfo, duplicates, dataLocationSet);
+                        result.AddRange(duplicatesSet);
                     }
                 }
             }
@@ -264,8 +280,7 @@ namespace OrdinaryDumpDeduplicator
         /// <summary>
         /// Получает файлы в наличии из <paramref name="directories"/>, то есть файлы обнаруженные последней инспекцией на своих местах.
         /// </summary>
-        /// <remarks>Повторяет функционал метода GetFilesOfDirectory.</remarks>
-        public Dictionary<BlobInfo, File[]> GetDirectoryCurrentFiles(IReadOnlyCollection<Directory> directories, Boolean includeSubDirectories)
+        public IReadOnlyCollection<FileInfo> GetDirectoryCurrentFiles(IReadOnlyCollection<Directory> directories, Boolean includeSubDirectories)
         {
             IEnumerable<DataLocation> dataLocations = GetDataLocations(directories, includeUpperDirectories: true);
             HashSet<Inspection> inspectionsSet = GetLastInspections(dataLocations); // Нужна крайняя инспекция той DataLocation, где находится каждая папка.
@@ -277,14 +292,14 @@ namespace OrdinaryDumpDeduplicator
 
             if (includeSubDirectories)
             {
-                IReadOnlyCollection<Directory> subDirectories = GetSubDirectories(inspectionsSet, directoriesToProcess, includeSubDirectories);
+                IReadOnlyCollection<Directory> subDirectories = GetSubDirectories(inspectionsSet, directoriesToProcess, doRecursively: includeSubDirectories);
                 foreach (Directory subDirectory in subDirectories)
                 {
                     directoriesToProcess.Add(subDirectory);
                 }
             }
 
-            var blobGroups = new Dictionary<BlobInfo, List<File>>(); // Все блобы и файлы какие есть в указанных папках.
+            var result = new HashSet<FileInfo>();
             foreach (FileState fileState in _fileStates)
             {
                 if (!inspectionsSet.Contains(fileState.Inspection))
@@ -293,7 +308,7 @@ namespace OrdinaryDumpDeduplicator
                 }
 
                 File file = fileState.File;
-                if (!directoriesToProcess.Contains(file.ParentDirectory)) // (?) А тут все директории, которые нам важны?
+                if (!directoriesToProcess.Contains(file.ParentDirectory))
                 {
                     continue;
                 }
@@ -301,13 +316,9 @@ namespace OrdinaryDumpDeduplicator
                 BlobInfo blobInfo = fileState.BlobInfo;
                 if (blobInfo != null)
                 {
-                    if (!blobGroups.ContainsKey(blobInfo))
-                    {
-                        blobGroups[blobInfo] = new List<File>();
-                    }
-
-                    var duplicateFiles = blobGroups[blobInfo];
-                    duplicateFiles.Add(file);
+                    DataLocation dataLocation = dataLocations.FirstOrDefault(location => IsFileFromDirectory(location.Directory, file)); // TODO: optimize
+                    var fileInfo = new FileInfo(fileState.BlobInfo, fileState.File, dataLocation);
+                    result.Add(fileInfo);
                 }
                 else
                 {
@@ -320,37 +331,84 @@ namespace OrdinaryDumpDeduplicator
                 }
             }
 
-            var result = new Dictionary<BlobInfo, File[]>();
-            foreach (KeyValuePair<BlobInfo, List<File>> blobGroup in blobGroups)
-            {
-                File[] duplicates = blobGroup.Value
-                    .Distinct()
-                    .ToArray();
-
-                result.Add(blobGroup.Key, duplicates);
-            }
-
             return result;
         }
 
-        public HashSet<Inspection> GetLastInspections(IEnumerable<DataLocation> dataLocations)
+        /// <remarks>Ну ооочень наивная реализация. Перебираем все папки в базе кучу раз.</remarks>
+        public IReadOnlyCollection<Directory> GetSubDirectories(HashSet<Inspection> inspections, HashSet<Directory> directories, Boolean doRecursively)
         {
-            var dataLocationsSet = new HashSet<DataLocation>(dataLocations);
-            var lastInspections = new Dictionary<DataLocation, Inspection>();
+            // TODO: Учесть инспекцию.
+            // (?) А может для директорий инспекции и не важны вовсе. Инспекции важны только для файлов.
 
-            foreach (var inspection in _inspections)
+            var subDirectories = new List<Directory>();
+            foreach (Directory directoryFromDb in _directories)
             {
-                var dataLocation = inspection.DataLocation;
-                if (dataLocationsSet.Contains(dataLocation) &&
-                    (!lastInspections.TryGetValue(dataLocation, out Inspection lastInspection) ||
-                    inspection.StartDateTime > lastInspection.StartDateTime))
+                if (directories.Contains(directoryFromDb.ParentDirectory))
                 {
-                    lastInspections[dataLocation] = inspection;
+                    subDirectories.Add(directoryFromDb);
                 }
             }
 
-            var inspectionsSet = new HashSet<Inspection>(lastInspections.Values);
-            return inspectionsSet;
+            if (doRecursively && subDirectories.Count > 0)
+            {
+                var subDirectorieshashSet = new HashSet<Directory>(subDirectories);
+                IReadOnlyCollection<Directory> moreSubDirectories = GetSubDirectories(inspections, subDirectorieshashSet, doRecursively: true);
+                subDirectories.AddRange(moreSubDirectories);
+            }
+
+            return subDirectories;
+        }
+
+        public Boolean IsFileFromDirectory(Directory directory, File file)
+        {
+            Boolean isFileFromDirectory = false;
+
+            if (_files.Contains(file))
+            {
+                if (file.ParentDirectory != null)
+                {
+                    FsEntity currentFsEntity = file;
+                    while (!isFileFromDirectory && currentFsEntity.ParentDirectory != null)
+                    {
+                        isFileFromDirectory = directory.Equals(currentFsEntity.ParentDirectory);
+                        currentFsEntity = currentFsEntity.ParentDirectory;
+                    }
+                }
+
+                if (!isFileFromDirectory) // Then check by path
+                {
+                    String relativePath = FileSystemHelper.GetRelativePath(directory.Path, file.Path);
+                    if (!relativePath.Contains(".."))
+                    {
+                        isFileFromDirectory = !relativePath.Contains(file.Path) && relativePath.Length >= file.Name.Length; // Дибильный temporal hack.
+                    }
+                }
+            }
+            else
+            {
+                throw new ArgumentException("File is unknown."); // TODO
+            }
+
+            return isFileFromDirectory;
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private HashSet<FileInfo> MakeDuplicatesSet(BlobInfo blobInfo, IEnumerable<File> files, IEnumerable<DataLocation> dataLocations)
+        {
+            var dataLocationSet = new HashSet<DataLocation>(dataLocations);
+
+            var duplicatesSet = new HashSet<FileInfo>();
+            foreach (File file in files)
+            {
+                DataLocation dataLocation = dataLocationSet.FirstOrDefault(location => IsFileFromDirectory(location.Directory, file)); // TODO: optimize
+                var copyInfo = new FileInfo(blobInfo, file, dataLocation);
+                duplicatesSet.Add(copyInfo);
+            }
+
+            return duplicatesSet;
         }
 
         #endregion

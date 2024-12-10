@@ -10,10 +10,11 @@ namespace OrdinaryDumpDeduplicator.Common
 
         private DateTime? _finish;
 
-        public Inspection(DataLocation dataLocation, DateTime start, DateTime? end = null)
+        public Inspection(DataLocation dataLocation, DateTime start, DateTime? finish = null)
         {
             this._dataLocation = dataLocation;
             this._start = start;
+            this._finish = finish;
         }
 
         public DataLocation DataLocation => _dataLocation;

@@ -5,32 +5,56 @@ namespace OrdinaryDumpDeduplicator.Common
     /// <summary>
     /// Папка на файловой системе подлежащая сканированию или архивации.
     /// </summary>
-    public class DataLocation
+    public class DataLocation : IEquatable<DataLocation>
     {
-        private readonly Guid _id;
         private readonly String _dataLocationPath;
 
-        private Directory _rootDirectory;
+        private readonly Directory _directory;
 
-        public Directory RootDirectory { get { return _rootDirectory; } }
+        public Directory Directory => _directory;
 
-        public String Path { get { return _dataLocationPath; } }
+        public String Path => _dataLocationPath;
 
-        public DataLocation(Directory rootDirectory)
+        public DataLocation(Directory directory)
         {
-            this._rootDirectory = rootDirectory;
-            this._dataLocationPath = rootDirectory.Path;
+            this._directory = directory;
+            this._dataLocationPath = directory.Path;
         }
 
-        public DataLocation(String dataLocationPath)
+        #region Overrides of object
+
+        public override Boolean Equals(Object obj)
         {
-            this._dataLocationPath = dataLocationPath;
+            if (obj == null)
+            {
+                return false;
+            }
+
+            DataLocation other = obj as DataLocation;
+            return Equals(other);
         }
 
-        [Obsolete]
-        public void SetRootDirectory(Directory directory)
+        public Boolean Equals(DataLocation other)
         {
-            this._rootDirectory = directory;
+            if (other == null)
+            {
+                return false;
+            }
+
+            Boolean isEqual = this._directory.Equals(other._directory);
+            return isEqual;
         }
+
+        public override int GetHashCode()
+        {
+            return this._directory.GetHashCode();
+        }
+
+        public override String ToString()
+        {
+            return this._directory.ToString();
+        }
+
+        #endregion
     }
 }
