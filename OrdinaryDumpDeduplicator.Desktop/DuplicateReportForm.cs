@@ -84,6 +84,16 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         #region Event handlers
 
+        private void button1_Click(object sender, EventArgs e)
+        {
+            treeView1.ExpandAll();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            treeView1.CollapseAll();
+        }
+
         private void treeItemsViewParameters_Changed(object sender, EventArgs e)
         {
             if (!_ignoreEventsFromControls)
@@ -130,36 +140,49 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
         }
 
+        private void expandAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            treeView1.ExpandAll();
+        }
+
+        private void collapseAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            treeView1.CollapseAll();
+        }
+
         private void treeView1_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
-                treeView1.SelectedNode = e.Node;
-
-                ItemToView treeViewItem = e.Node.Tag as ItemToView;
-                if (treeViewItem != null)
+                if (e.Node.Tag != null)
                 {
-                    moveToDuplicatesToolStripMenuItem.Enabled = treeViewItem.IsMoveable;
-                    deleteToolStripMenuItem.Enabled = treeViewItem.IsDeletable;
+                    treeView1.SelectedNode = e.Node;
 
-                    e.Node.ContextMenuStrip = contextMenuStrip1;
+                    ItemToView treeViewItem = e.Node.Tag as ItemToView;
+                    if (treeViewItem != null)
+                    {
+                        moveToDuplicatesToolStripMenuItem.Enabled = treeViewItem.IsMoveable;
+                        deleteToolStripMenuItem.Enabled = treeViewItem.IsDeletable;
+
+                        e.Node.ContextMenuStrip = contextMenuStrip1;
+                    }
+                    else
+                    {
+                        e.Node.ContextMenuStrip = _emptyContextMenuStrip;
+                    }
                 }
                 else
                 {
-                    e.Node.ContextMenuStrip = _emptyContextMenuStrip;
+                    e.Node.ContextMenuStrip = contextMenuStrip2;
                 }
-            }
-            else
-            {
-                e.Node.ContextMenuStrip = _emptyContextMenuStrip;
-            }
 
-            /*
-            if (e.Node.Level == 0)
-            {
-                e.Node.ContextMenuStrip = contextMenuStrip1;
+                /*
+                if (e.Node.Level == 0)
+                {
+                    e.Node.ContextMenuStrip = contextMenuStrip1;
+                }
+                */
             }
-            */
         }
 
         private void DuplicateReportForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -234,5 +257,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         }
 
         #endregion
+
+       
     }
 }
