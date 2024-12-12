@@ -105,10 +105,11 @@ namespace OrdinaryDumpDeduplicator.Desktop
         private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
         {
             Object nodeTag = treeView1.SelectedNode?.Tag;
-            var file = nodeTag as File;
-            if (file != null)
+            ItemToView treeViewItem = nodeTag as ItemToView;
+            if (treeViewItem != null && treeViewItem.Type == typeof(FileInfo))
             {
-                textBox1.Text = file.Path;
+                FileInfo fileInfo = (FileInfo)treeViewItem.WrappedObject;
+                textBox1.Text = fileInfo.File.Path;
             }
             else
             {
