@@ -102,7 +102,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
                         // Nothing to do here.
                     }
                 }
-                else if (listView1.CheckedItems != null && listView1.SelectedItems.Count > 0)
+                else if (listView1.SelectedItems != null && listView1.SelectedItems.Count == 1)
                 {
                     IReadOnlyCollection<ItemToView> selectedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.SelectedItems));
                     if (selectedObjects != null && selectedObjects.Count > 0)
@@ -149,6 +149,48 @@ namespace OrdinaryDumpDeduplicator.Desktop
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void listView1_ItemChecked(object sender, ItemCheckedEventArgs e)
+        {
+            Boolean isPossibleToRescanDataLocation = false;
+            Boolean isPossibleToSearchDuplicates = false;
+
+            if (listView1.CheckedItems != null && listView1.CheckedItems.Count >= 1)
+            {
+                isPossibleToSearchDuplicates = true;
+
+                IReadOnlyCollection<ItemToView> checkedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.CheckedItems));
+                if (checkedObjects.Count == 1)
+                {
+                    isPossibleToRescanDataLocation = true;
+                }
+            }
+
+            if (!isPossibleToRescanDataLocation)
+            {
+                isPossibleToRescanDataLocation = listView1.SelectedItems != null && listView1.SelectedItems.Count == 1;
+            }
+
+            button3.Enabled = isPossibleToRescanDataLocation;
+            button4.Enabled = isPossibleToSearchDuplicates;
+        }
+
+        private void listView1_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)
+        {
+            Boolean isPossibleToRescanDataLocation = listView1.SelectedItems != null && listView1.SelectedItems.Count == 1;
+            if (!isPossibleToRescanDataLocation)
+            {
+                isPossibleToRescanDataLocation = listView1.CheckedItems != null && listView1.CheckedItems.Count == 1;
+            }
+
+            button3.Enabled = isPossibleToRescanDataLocation;
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            Boolean isPossibleToAddDataLocation = !String.IsNullOrWhiteSpace(textBox1.Text);
+            button2.Enabled = isPossibleToAddDataLocation;
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -214,6 +256,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 yield return listViewItem;
             }
         }
+
 
         #endregion
     }
