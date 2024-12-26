@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 
 using OrdinaryDumpDeduplicator.Common;
@@ -186,6 +188,43 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
         }
 
+        private void treeView1_NodeMouseHover(object sender, TreeNodeMouseHoverEventArgs e)
+        {
+            if (e.Node != null)
+            {
+                Object nodeTag = e.Node?.Tag;
+                ItemToView treeViewItem = nodeTag as ItemToView;
+                if (treeViewItem != null && treeViewItem.Type == typeof(FileInfo))
+                {
+                    FileInfo fileInfo = (FileInfo)treeViewItem.WrappedObject;
+                    FileInfo[] duplicates = fileInfo.SameContentFilesInfo.Duplicates
+                        .Except(new[] { fileInfo })
+                        .OrderBy(fInfo => fInfo.Sort)
+                        .ToArray();
+
+                    var duplicatesInfoStringBuilder = new StringBuilder();
+                    if (duplicates.Length > 0)
+                    {
+                        duplicatesInfoStringBuilder.AppendLine("Duplicates:");
+                        foreach (FileInfo duplicate in duplicates)
+                        {
+                            duplicatesInfoStringBuilder.AppendLine(duplicate.ToString());
+                        }
+                    }
+                    else
+                    {
+                        duplicatesInfoStringBuilder.Append("Has no duplicates.");
+                    }
+
+                    e.Node.ToolTipText = duplicatesInfoStringBuilder.ToString();
+                }
+                else
+                {
+                    e.Node.ToolTipText = String.Empty;
+                }
+            }
+        }
+
         private void DuplicateReportForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             this.Hide();
@@ -259,6 +298,5 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         #endregion
 
-       
     }
 }

@@ -58,7 +58,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.treeView1.Location = new System.Drawing.Point(10, 10);
             this.treeView1.Name = "treeView1";
             this.treeView1.Size = new System.Drawing.Size(452, 341);
+            this.treeView1.ShowNodeToolTips = true;
             this.treeView1.TabIndex = 2;
+            this.treeView1.NodeMouseHover += new System.Windows.Forms.TreeNodeMouseHoverEventHandler(this.treeView1_NodeMouseHover);
             this.treeView1.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterSelect);
             this.treeView1.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView1_NodeMouseClick);
             // 
