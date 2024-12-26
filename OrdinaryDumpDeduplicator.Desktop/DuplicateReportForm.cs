@@ -157,26 +157,30 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             if (e.Button == MouseButtons.Right)
             {
-                if (e.Node.Tag != null)
+                if (e.Node != null)
                 {
-                    treeView1.SelectedNode = e.Node;
 
-                    ItemToView treeViewItem = e.Node.Tag as ItemToView;
-                    if (treeViewItem != null)
+                    if (e.Node.Tag != null)
                     {
-                        moveToDuplicatesToolStripMenuItem.Enabled = treeViewItem.IsMoveable;
-                        deleteToolStripMenuItem.Enabled = treeViewItem.IsDeletable;
+                        treeView1.SelectedNode = e.Node;
 
-                        e.Node.ContextMenuStrip = contextMenuStrip1;
+                        ItemToView treeViewItem = e.Node.Tag as ItemToView;
+                        if (treeViewItem != null)
+                        {
+                            moveToDuplicatesToolStripMenuItem.Enabled = treeViewItem.IsMoveable;
+                            deleteToolStripMenuItem.Enabled = treeViewItem.IsDeletable;
+
+                            e.Node.ContextMenuStrip = contextMenuStrip1;
+                        }
+                        else
+                        {
+                            e.Node.ContextMenuStrip = _emptyContextMenuStrip;
+                        }
                     }
                     else
                     {
-                        e.Node.ContextMenuStrip = _emptyContextMenuStrip;
+                        e.Node.ContextMenuStrip = contextMenuStrip2;
                     }
-                }
-                else
-                {
-                    e.Node.ContextMenuStrip = contextMenuStrip2;
                 }
 
                 /*
