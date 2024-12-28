@@ -28,24 +28,26 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         public void SetTreeViewItems(ItemToView[] treeViewItems, Boolean resetForm)
         {
-            treeView1.Nodes.Clear();
-            Boolean viewFullPath = radioButton1.Checked; // TODO
-
-            if (resetForm)
+            if (InvokeRequired)
             {
-                ResetFormControls();
+                Invoke(new Action(() => SetTreeViewItemsInternal(treeViewItems, resetForm)));
             }
-
-            foreach (ItemToView itemInReport in treeViewItems)
+            else
             {
-                TreeNode treeNode = MakeTreeNodeWithChildren(itemInReport);
-                treeView1.Nodes.Add(treeNode);
+                SetTreeViewItemsInternal(treeViewItems, resetForm);
             }
         }
 
         public void AddSessionMessage(String message)
         {
-            textBox1.Text = message;
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => AddSessionMessageInternal(message)));
+            }
+            else
+            {
+                AddSessionMessageInternal(message);
+            }
         }
 
         #endregion
@@ -80,6 +82,28 @@ namespace OrdinaryDumpDeduplicator.Desktop
             checkBox1.Checked = false;
 
             _ignoreEventsFromControls = false;
+        }
+
+        private void SetTreeViewItemsInternal(ItemToView[] treeViewItems, Boolean resetForm)
+        {
+            treeView1.Nodes.Clear();
+            Boolean viewFullPath = radioButton1.Checked; // TODO
+
+            if (resetForm)
+            {
+                ResetFormControls();
+            }
+
+            foreach (ItemToView itemInReport in treeViewItems)
+            {
+                TreeNode treeNode = MakeTreeNodeWithChildren(itemInReport);
+                treeView1.Nodes.Add(treeNode);
+            }
+        }
+
+        public void AddSessionMessageInternal(String message)
+        {
+            textBox1.Text = message;
         }
 
         #endregion

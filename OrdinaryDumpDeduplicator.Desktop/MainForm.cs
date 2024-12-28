@@ -24,6 +24,39 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         public void SetListViewItems(IReadOnlyCollection<ItemToView> items)
         {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => SetListViewItemsInternal(items)));
+            }
+            else
+            {
+                SetListViewItemsInternal(items);
+            }
+        }
+
+        public void AddSessionMessage(String message)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => AddSessionMessageInternal(message)));
+            }
+            else
+            {
+                AddSessionMessageInternal(message);
+            }
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private void SetDirectoryPath(String directoryPath)
+        {
+            textBox1.Text = directoryPath;
+        }
+
+        private void SetListViewItemsInternal(IReadOnlyCollection<ItemToView> items)
+        {
             var listViewItemCollection = new List<ListViewItem>(items.Count);
             foreach (ItemToView itemToView in items)
             {
@@ -42,18 +75,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
         }
 
-        public void AddSessionMessage(String message)
+        private void AddSessionMessageInternal(String message)
         {
             textBox2.Text = message;
-        }
-
-        #endregion
-
-        #region Private methods
-
-        private void SetDirectoryPath(String directoryPath)
-        {
-            textBox1.Text = directoryPath;
         }
 
         #endregion

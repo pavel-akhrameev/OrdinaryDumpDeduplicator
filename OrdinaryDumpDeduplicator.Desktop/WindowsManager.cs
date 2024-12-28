@@ -5,6 +5,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
 {
     internal class WindowsManager
     {
+        private System.Threading.SynchronizationContext _guiSynchronizationContext;
+
         private MainForm _mainForm;
         private DuplicateReportForm _duplicatesForm;
 
@@ -21,6 +23,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this._mainForm = new MainForm();
             this._duplicatesForm = new DuplicateReportForm();
             this._aboutBox = new AboutBox();
+
+            this._guiSynchronizationContext = System.Threading.SynchronizationContext.Current;
         }
 
         #endregion
@@ -49,26 +53,26 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             if (!_duplicatesForm.Visible)
             {
-                _duplicatesForm.Show(_mainForm);
+                _guiSynchronizationContext.Post(new System.Threading.SendOrPostCallback((Object state) => _duplicatesForm.Show(_mainForm)), null);
             }
         }
 
         public void HideDuplicatesForm()
         {
-            _duplicatesForm.Hide();
+            _guiSynchronizationContext.Post(new System.Threading.SendOrPostCallback((Object state) => _duplicatesForm.Hide()), null);
         }
 
         public void ShowAboutBox()
         {
             if (!_aboutBox.Visible)
             {
-                _aboutBox.ShowDialog(_mainForm);
+                _guiSynchronizationContext.Post(new System.Threading.SendOrPostCallback((Object state) => _aboutBox.ShowDialog(_mainForm)), null);
             }
         }
 
         public void HideAboutBox()
         {
-            _aboutBox.Hide();
+            _guiSynchronizationContext.Post(new System.Threading.SendOrPostCallback((Object state) => _aboutBox.Hide()), null);
         }
 
         public void CloseAllAdditionalForms()

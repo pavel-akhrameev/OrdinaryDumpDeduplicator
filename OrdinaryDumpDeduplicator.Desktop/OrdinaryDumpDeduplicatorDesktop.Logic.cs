@@ -49,89 +49,130 @@ namespace OrdinaryDumpDeduplicator.Desktop
             mainViewModel.AddSessionMessage("Rescan started.");
             DateTime now = DateTime.Now;
 
-            DataLocation currentDataLocation = _ordinaryDumpDeduplicator.DoInspection(dataLocation);
+            System.Threading.Tasks.Task<DataLocation> doInspectionTask = _ordinaryDumpDeduplicator.DoInspection(dataLocation);
+            doInspectionTask.ContinueWith(inspectionTask =>
+            {
+                DataLocation currentDataLocation = inspectionTask.Result;
 
-            TimeSpan timeSpent = DateTime.Now.Subtract(now);
-            String timeSpentString = TimeSpanToString(timeSpent);
-            mainViewModel.AddSessionMessage($"Rescan finished in {timeSpentString}.");
+                TimeSpan timeSpent = DateTime.Now.Subtract(now);
+                String timeSpentString = TimeSpanToString(timeSpent);
+                mainViewModel.AddSessionMessage($"Rescan finished in {timeSpentString}.");
 
-            ViewDuplicatesByHash(new[] { currentDataLocation }, hideIsolatedDuplicates: true, doResetForm: true); // by default
+                GetAndViewDuplicatesByHash(new[] { currentDataLocation }, hideIsolatedDuplicates: true, doResetForm: true); // by default
+            });
         }
 
         private void FindDuplicatesRequested(IReadOnlyCollection<ItemToView> dataLocationItems)
         {
             DataLocation[] dataLocations = GetDataLocations(dataLocationItems);
-            ViewDuplicatesByHash(dataLocations, hideIsolatedDuplicates: true, doResetForm: true); // by default
+            GetAndViewDuplicatesByHash(dataLocations, hideIsolatedDuplicates: true, doResetForm: true); // by default
         }
 
         /// <remarks>Это событие вызывается с формы <c>DuplicateReportForm</c> значит, саму форму перезапускать не надо.</remarks>
         private void ViewDuplicatesByHashRequested(Boolean hideIsolatedDuplicates)
         {
-            ViewDuplicatesByHash(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates, doResetForm: false);
+            GetAndViewDuplicatesByHash(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates, doResetForm: false);
         }
 
         private void ViewDuplicatesByFoldersRequested(Boolean hideIsolatedDuplicates)
         {
-            ViewDuplicatesByFolders(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates);
+            GetAndViewDuplicatesByFolders(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates);
         }
 
-        private void ViewDuplicatesByHash(IReadOnlyCollection<DataLocation> dataLocations, Boolean hideIsolatedDuplicates, Boolean doResetForm)
+        private void GetAndViewDuplicatesByHash(IReadOnlyCollection<DataLocation> dataLocations, Boolean hideIsolatedDuplicates, Boolean doResetForm)
         {
             if (dataLocations != null && dataLocations.Count > 0)
             {
-                _currentDuplicateReport = _ordinaryDumpDeduplicator.GetDuplicatesFound(dataLocations);
+                DateTime now = DateTime.Now;
 
-                // TODO: Переделать на IEnumerable для оптимизации.
+                System.Threading.Tasks.Task<DuplicateReport> getDuplicatesTask = _ordinaryDumpDeduplicator.GetDuplicatesFound(dataLocations);
+                getDuplicatesTask.ContinueWith(duplicateReportTask =>
+                {
+                    DuplicateReport duplicateReport = duplicateReportTask.Result;
+                    _currentDuplicateReport = duplicateReport;
 
-                IReadOnlyCollection<SameContentFilesInfo> uniqueIsolatedFiles = _currentDuplicateReport.UniqueIsolatedFiles;
-                SameContentFilesInfo[] sortedUniqueIsolatedFiles = uniqueIsolatedFiles
-                    .OrderByDescending(blobInfo => blobInfo.AllDataSize)
+                    TimeSpan timeSpent = DateTime.Now.Subtract(now);
+                    String timeSpentString = TimeSpanToString(timeSpent);
+                    _windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
+
+                    ViewDuplicatesByHash(duplicateReport, hideIsolatedDuplicates, doResetForm);
+                });
+            }
+        }
+
+        private void GetAndViewDuplicatesByFolders(IReadOnlyCollection<DataLocation> dataLocations, Boolean hideIsolatedDuplicates)
+        {
+            if (dataLocations != null && dataLocations.Count > 0)
+            {
+                DateTime now = DateTime.Now;
+
+                System.Threading.Tasks.Task<DuplicateReport> getDuplicatesTask = _ordinaryDumpDeduplicator.GetDuplicatesFound(dataLocations);
+                getDuplicatesTask.ContinueWith(duplicateReportTask =>
+                {
+                    DuplicateReport duplicateReport = duplicateReportTask.Result;
+                    _currentDuplicateReport = duplicateReport;
+
+                    TimeSpan timeSpent = DateTime.Now.Subtract(now);
+                    String timeSpentString = TimeSpanToString(timeSpent);
+                    _windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
+
+                    ItemToView[] itemsInReport = GetDuplicatesByFolders(duplicateReport, hideIsolatedDuplicates);
+                    ViewDuplicatesByFolders(itemsInReport);
+                });
+            }
+        }
+
+        private void ViewDuplicatesByHash(DuplicateReport duplicateReport, Boolean hideIsolatedDuplicates, Boolean doResetForm)
+        {
+            // TODO: Переделать на IEnumerable для оптимизации.
+
+            IReadOnlyCollection<SameContentFilesInfo> uniqueIsolatedFiles = duplicateReport.UniqueIsolatedFiles;
+            SameContentFilesInfo[] sortedUniqueIsolatedFiles = uniqueIsolatedFiles
+                .OrderByDescending(blobInfo => blobInfo.AllDataSize)
+                .ToArray();
+
+            SameContentFilesInfo[] sortedDuplicatesByHash;
+
+            if (hideIsolatedDuplicates)
+            {
+                IReadOnlyCollection<SameContentFilesInfo> duplicatesByHashes = duplicateReport.DuplicatesFound;
+                sortedDuplicatesByHash = duplicatesByHashes
+                    .OrderByDescending(blobInfo => blobInfo.DuplicatesDataSize)
                     .ToArray();
-
-                SameContentFilesInfo[] sortedDuplicatesByHash;
-
-                if (hideIsolatedDuplicates)
-                {
-                    IReadOnlyCollection<SameContentFilesInfo> duplicatesByHashes = _currentDuplicateReport.DuplicatesFound;
-                    sortedDuplicatesByHash = duplicatesByHashes
-                        .OrderByDescending(blobInfo => blobInfo.DuplicatesDataSize)
-                        .ToArray();
-                }
-                else
-                {
-                    IReadOnlyCollection<SameContentFilesInfo> duplicatesByHashes = _currentDuplicateReport.DuplicatesFound;
-                    IReadOnlyCollection<SameContentFilesInfo> allDuplicatesIsolated = _currentDuplicateReport.AllDuplicatesIsolated;
-                    sortedDuplicatesByHash = duplicatesByHashes
-                        .Concat(allDuplicatesIsolated)
-                        .OrderByDescending(blobInfo => blobInfo.AllDuplicatesDataSize)
-                        .ToArray();
-                }
-
-                Int32 objectsCount = sortedUniqueIsolatedFiles.Length + sortedDuplicatesByHash.Length;
-
-                var objectsToView = new SameContentFilesInfo[objectsCount];
-                Array.Copy(sortedUniqueIsolatedFiles, 0, objectsToView, 0, sortedUniqueIsolatedFiles.Length);
-                Array.Copy(sortedDuplicatesByHash, 0, objectsToView, sortedUniqueIsolatedFiles.Length, sortedDuplicatesByHash.Length);
-
-                ItemToView[] itemsInReport = MakeViewItems(objectsToView, hideIsolatedDuplicates);
-
-                _windowsManager.DuplicatesViewModel.SetTreeViewItems(itemsInReport, doResetForm);
-                _windowsManager.ShowDuplicatesForm();
             }
+            else
+            {
+                IReadOnlyCollection<SameContentFilesInfo> duplicatesByHashes = duplicateReport.DuplicatesFound;
+                IReadOnlyCollection<SameContentFilesInfo> allDuplicatesIsolated = duplicateReport.AllDuplicatesIsolated;
+                sortedDuplicatesByHash = duplicatesByHashes
+                    .Concat(allDuplicatesIsolated)
+                    .OrderByDescending(blobInfo => blobInfo.AllDuplicatesDataSize)
+                    .ToArray();
+            }
+
+            Int32 objectsCount = sortedUniqueIsolatedFiles.Length + sortedDuplicatesByHash.Length;
+
+            var objectsToView = new SameContentFilesInfo[objectsCount];
+            Array.Copy(sortedUniqueIsolatedFiles, 0, objectsToView, 0, sortedUniqueIsolatedFiles.Length);
+            Array.Copy(sortedDuplicatesByHash, 0, objectsToView, sortedUniqueIsolatedFiles.Length, sortedDuplicatesByHash.Length);
+
+            ItemToView[] itemsInReport = MakeViewItems(objectsToView, hideIsolatedDuplicates);
+
+            _windowsManager.DuplicatesViewModel.SetTreeViewItems(itemsInReport, doResetForm);
+            _windowsManager.ShowDuplicatesForm();
         }
 
-        private void ViewDuplicatesByFolders(IReadOnlyCollection<DataLocation> dataLocations, Boolean hideIsolatedDuplicates)
+        private ItemToView[] GetDuplicatesByFolders(DuplicateReport duplicateReport, Boolean hideIsolatedDuplicates)
         {
-            if (dataLocations != null && dataLocations.Count > 0)
-            {
-                _currentDuplicateReport = _ordinaryDumpDeduplicator.GetDuplicatesFound(dataLocations);
+            IReadOnlyCollection<DirectoryWithDuplicates> duplicatesByDirectories = _currentDuplicateReport.GetDuplicatesFoundByDirectories(!hideIsolatedDuplicates);
+            ItemToView[] itemsInReport = MakeViewItems(duplicatesByDirectories, hideIsolatedDuplicates);
+            return itemsInReport;
+        }
 
-                IReadOnlyCollection<DirectoryWithDuplicates> duplicatesByDirectories = _currentDuplicateReport.GetDuplicatesFoundByDirectories(!hideIsolatedDuplicates);
-                ItemToView[] itemsInReport = MakeViewItems(duplicatesByDirectories, hideIsolatedDuplicates);
-
-                _windowsManager.DuplicatesViewModel.SetTreeViewItems(itemsInReport, resetForm: false);
-                _windowsManager.ShowDuplicatesForm();
-            }
+        private void ViewDuplicatesByFolders(ItemToView[] itemsInReport)
+        {
+            _windowsManager.DuplicatesViewModel.SetTreeViewItems(itemsInReport, resetForm: false);
+            _windowsManager.ShowDuplicatesForm();
         }
 
         private void MoveToDuplicatesRequested(ItemToView[] treeViewItems)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using OrdinaryDumpDeduplicator.Common;
 
@@ -46,7 +47,34 @@ namespace OrdinaryDumpDeduplicator
             return dataLocations;
         }
 
-        public DataLocation DoInspection(DataLocation dataLocation)
+        public Task<DataLocation> DoInspection(DataLocation dataLocation)
+        {
+            Task<DataLocation> doInspectionTask = Task.Run(() => DoInspectionInternal(dataLocation));
+            return doInspectionTask;
+        }
+
+        public Task<DuplicateReport> GetDuplicatesFound(IReadOnlyCollection<DataLocation> dataLocations)
+        {
+            Task<DuplicateReport> getDuplicatesTask = Task.Run(() => _duplicatesProcessor.GetDuplicatesFound(dataLocations));
+            return getDuplicatesTask;
+        }
+
+        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
+        {
+            _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, duplicates);
+        }
+
+        public void DeleteDuplicate(DuplicateReport duplicateReport, FileInfo[] filesToDelete)
+        {
+            //var fileObjectsToProcess = GetFiles(ItemToViews);
+            _duplicatesProcessor.DeleteDuplicate(duplicateReport, filesToDelete);
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private DataLocation DoInspectionInternal(DataLocation dataLocation)
         {
             _currentDataLocation = null;
             var inspection = new Inspection(dataLocation, DateTime.Now);
@@ -74,27 +102,6 @@ namespace OrdinaryDumpDeduplicator
             _currentDataLocation = dataLocation;
             return _currentDataLocation;
         }
-
-        public DuplicateReport GetDuplicatesFound(IReadOnlyCollection<DataLocation> dataLocations)
-        {
-            DuplicateReport duplicateReport = _duplicatesProcessor.GetDuplicatesFound(dataLocations);
-            return duplicateReport;
-        }
-
-        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
-        {
-            _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, duplicates);
-        }
-
-        public void DeleteDuplicate(DuplicateReport duplicateReport, FileInfo[] filesToDelete)
-        {
-            //var fileObjectsToProcess = GetFiles(ItemToViews);
-            _duplicatesProcessor.DeleteDuplicate(duplicateReport, filesToDelete);
-        }
-
-        #endregion
-
-        #region Private methods
 
         private void ComputeHashesOfFiles(IReadOnlyCollection<FileState> statesOfFiles)
         {
