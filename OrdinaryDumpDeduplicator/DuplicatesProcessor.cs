@@ -205,46 +205,19 @@ namespace OrdinaryDumpDeduplicator
             var blobsOnOriginalLocation = new HashSet<BlobInfo>();
             foreach (SameContentFilesInfo sameContentFilesInfo in duplicatesByHash)
             {
-                BlobInfo blobInfo = sameContentFilesInfo.BlobInfo;
-
-                // Among such duplicates (blobs) there may be those that have no files in the original locations at all.
-                IReadOnlyCollection<FileInfo> sameContentFiles = sameContentFilesInfo.Duplicates;
-
-                Int32 originalLocationFilesCount = 0;
-                Int32 isolatedDuplicatesCount = 0;
-                foreach (FileInfo fileInfo in sameContentFiles)
+                if (sameContentFilesInfo.AllDuplicatesIsolated)
                 {
-                    switch (fileInfo.Sort)
-                    {
-                        case DuplicateSort.InOriginalLocation:
-                            originalLocationFilesCount++;
-                            break;
-                        case DuplicateSort.IsolatedDuplicate:
-                            isolatedDuplicatesCount++;
-                            break;
-                    }
+                    allDuplicatesIsolated.Add(sameContentFilesInfo);
+                    blobsOnOriginalLocation.Add(sameContentFilesInfo.BlobInfo);
                 }
-
-                if (originalLocationFilesCount > 0)
-                {
-                    blobsOnOriginalLocation.Add(blobInfo);
-
-                    if (originalLocationFilesCount == 1)
-                    {
-                        allDuplicatesIsolated.Add(sameContentFilesInfo);
-                    }
-                    else
-                    {
-                        hasUnprocessedDuplicates.Add(sameContentFilesInfo);
-                    }
-                }
-                else if (isolatedDuplicatesCount > 0)
+                else if (sameContentFilesInfo.ContainsIsolatedFilesOnly)
                 {
                     uniqueIsolatedFiles.Add(sameContentFilesInfo);
                 }
                 else
                 {
-                    throw new Exception(""); // TODO
+                    hasUnprocessedDuplicates.Add(sameContentFilesInfo);
+                    blobsOnOriginalLocation.Add(sameContentFilesInfo.BlobInfo);
                 }
             }
 

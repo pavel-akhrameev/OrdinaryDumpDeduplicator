@@ -199,6 +199,7 @@ namespace OrdinaryDumpDeduplicator
                 }
             }
 
+            // Among such duplicates (blobs) there may be those that have no files in the original locations at all.
             BlobPeculiarities blobPeculiarities = filesOnOriginalLocations > 0
                 ? BlobPeculiarities.HasOriginalLocatedFiles
                 : BlobPeculiarities.HasNoOriginalLocatedFiles;
