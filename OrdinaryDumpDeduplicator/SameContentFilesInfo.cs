@@ -80,6 +80,15 @@ namespace OrdinaryDumpDeduplicator
             }
         }
 
+        public Boolean HasUnprocessedDuplicates
+        {
+            get
+            {
+                Boolean hasUnprocessedDuplicates = this.Peculiarities.HasFlag(BlobPeculiarities.HasUnprocessedDuplicates);
+                return hasUnprocessedDuplicates;
+            }
+        }
+
         public Boolean AllDuplicatesIsolated
         {
             get

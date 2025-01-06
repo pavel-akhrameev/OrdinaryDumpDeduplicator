@@ -42,10 +42,9 @@ namespace OrdinaryDumpDeduplicator
             SetIsolatedDuplicateSortToFileInfo(filesFromIsolatedDuplicatesFolders);
             IReadOnlyCollection<SameContentFilesInfo> isolatedDuplicates = GroupFilesWithSameContent(filesFromIsolatedDuplicatesFolders);
 
-            SeparateFoundDuplicatesIntoCategories(duplicates, isolatedDuplicates, out HashSet<SameContentFilesInfo> unprocessedDuplicates,
-                out HashSet<SameContentFilesInfo> allDuplicatesIsolated, out HashSet<SameContentFilesInfo> uniqueIsolatedFiles);
+            GetFilesToReport(duplicates, isolatedDuplicates, out HashSet<SameContentFilesInfo> filesToReport);
 
-            return new DuplicateReport(dataLocations, unprocessedDuplicates, allDuplicatesIsolated, uniqueIsolatedFiles);
+            return new DuplicateReport(filesToReport, dataLocations);
         }
 
         public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
@@ -191,41 +190,17 @@ namespace OrdinaryDumpDeduplicator
 
         #region Private static methods
 
-        private static void SeparateFoundDuplicatesIntoCategories(
+        private static void GetFilesToReport(
             IReadOnlyCollection<SameContentFilesInfo> duplicatesByHash,
             IReadOnlyCollection<SameContentFilesInfo> filesFromIsolatedDuplicatesFolder,
-            out HashSet<SameContentFilesInfo> hasUnprocessedDuplicates,
-            out HashSet<SameContentFilesInfo> allDuplicatesIsolated,
-            out HashSet<SameContentFilesInfo> uniqueIsolatedFiles)
+            out HashSet<SameContentFilesInfo> filesToReport)
         {
-            hasUnprocessedDuplicates = new HashSet<SameContentFilesInfo>();
-            allDuplicatesIsolated = new HashSet<SameContentFilesInfo>();
-            uniqueIsolatedFiles = new HashSet<SameContentFilesInfo>();
-
-            var blobsOnOriginalLocation = new HashSet<BlobInfo>();
-            foreach (SameContentFilesInfo sameContentFilesInfo in duplicatesByHash)
-            {
-                if (sameContentFilesInfo.AllDuplicatesIsolated)
-                {
-                    allDuplicatesIsolated.Add(sameContentFilesInfo);
-                    blobsOnOriginalLocation.Add(sameContentFilesInfo.BlobInfo);
-                }
-                else if (sameContentFilesInfo.ContainsIsolatedFilesOnly)
-                {
-                    uniqueIsolatedFiles.Add(sameContentFilesInfo);
-                }
-                else
-                {
-                    hasUnprocessedDuplicates.Add(sameContentFilesInfo);
-                    blobsOnOriginalLocation.Add(sameContentFilesInfo.BlobInfo);
-                }
-            }
-
+            filesToReport = new HashSet<SameContentFilesInfo>(duplicatesByHash);
             foreach (SameContentFilesInfo sameContentIsolatedFiles in filesFromIsolatedDuplicatesFolder)
             {
-                if (!blobsOnOriginalLocation.Contains(sameContentIsolatedFiles.BlobInfo))
+                if (!filesToReport.Contains(sameContentIsolatedFiles))
                 {
-                    uniqueIsolatedFiles.Add(sameContentIsolatedFiles);
+                    filesToReport.Add(sameContentIsolatedFiles);
                 }
             }
         }

@@ -126,7 +126,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             // TODO: Переделать на IEnumerable для оптимизации.
 
-            IReadOnlyCollection<SameContentFilesInfo> uniqueIsolatedFiles = duplicateReport.UniqueIsolatedFiles;
+            IReadOnlyCollection<SameContentFilesInfo> uniqueIsolatedFiles = duplicateReport.IsolatedFilesOnly;
             SameContentFilesInfo[] sortedUniqueIsolatedFiles = uniqueIsolatedFiles
                 .OrderByDescending(blobInfo => blobInfo.AllDataSize)
                 .ToArray();
@@ -135,14 +135,14 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
             if (hideIsolatedDuplicates)
             {
-                IReadOnlyCollection<SameContentFilesInfo> duplicatesByHashes = duplicateReport.DuplicatesFound;
+                IReadOnlyCollection<SameContentFilesInfo> duplicatesByHashes = duplicateReport.UnprocessedDuplicatesFound;
                 sortedDuplicatesByHash = duplicatesByHashes
                     .OrderByDescending(blobInfo => blobInfo.DuplicatesDataSize)
                     .ToArray();
             }
             else
             {
-                IReadOnlyCollection<SameContentFilesInfo> duplicatesByHashes = duplicateReport.DuplicatesFound;
+                IReadOnlyCollection<SameContentFilesInfo> duplicatesByHashes = duplicateReport.UnprocessedDuplicatesFound;
                 IReadOnlyCollection<SameContentFilesInfo> allDuplicatesIsolated = duplicateReport.AllDuplicatesIsolated;
                 sortedDuplicatesByHash = duplicatesByHashes
                     .Concat(allDuplicatesIsolated)

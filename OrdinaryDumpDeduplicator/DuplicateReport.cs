@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using OrdinaryDumpDeduplicator.Common;
 
@@ -9,38 +10,60 @@ namespace OrdinaryDumpDeduplicator
     {
         #region Private fields
 
+        private readonly HashSet<SameContentFilesInfo> _filesToReport;
+
         private readonly IReadOnlyCollection<DataLocation> _dataLocations;
-
-        private readonly IReadOnlyCollection<SameContentFilesInfo> _unprocessedDuplicates;
-
-        private readonly IReadOnlyCollection<SameContentFilesInfo> _allDuplicatesIsolated;
-
-        private readonly IReadOnlyCollection<SameContentFilesInfo> _uniqueIsolatedFiles;
 
         private Dictionary<Directory, FileInfo[]> _directoriesWithDuplicates;
 
         #endregion
 
-        internal DuplicateReport(
-            IReadOnlyCollection<DataLocation> dataLocations,
-            IReadOnlyCollection<SameContentFilesInfo> unprocessedDuplicates,
-            IReadOnlyCollection<SameContentFilesInfo> allDuplicatesIsolated,
-            IReadOnlyCollection<SameContentFilesInfo> uniqueIsolatedFiles)
+        internal DuplicateReport(IReadOnlyCollection<SameContentFilesInfo> filesToReport, IReadOnlyCollection<DataLocation> dataLocations)
         {
+            this._filesToReport = new HashSet<SameContentFilesInfo>(filesToReport);
             this._dataLocations = dataLocations;
-            this._unprocessedDuplicates = unprocessedDuplicates;
-            this._allDuplicatesIsolated = allDuplicatesIsolated;
-            this._uniqueIsolatedFiles = uniqueIsolatedFiles;
             this._directoriesWithDuplicates = null;
         }
 
         #region Public properties
 
-        public IReadOnlyCollection<SameContentFilesInfo> DuplicatesFound => _unprocessedDuplicates;
+        public IReadOnlyCollection<SameContentFilesInfo> FilesToReport => _filesToReport;
 
-        public IReadOnlyCollection<SameContentFilesInfo> AllDuplicatesIsolated => _allDuplicatesIsolated;
+        public IReadOnlyCollection<SameContentFilesInfo> UnprocessedDuplicatesFound
+        {
+            get
+            {
+                var unprocessedDuplicates = _filesToReport
+                    .Where(sameContentFiles => sameContentFiles.HasUnprocessedDuplicates)
+                    .ToArray();
 
-        public IReadOnlyCollection<SameContentFilesInfo> UniqueIsolatedFiles => _uniqueIsolatedFiles;
+                return unprocessedDuplicates;
+            }
+        }
+
+        public IReadOnlyCollection<SameContentFilesInfo> AllDuplicatesIsolated
+        {
+            get
+            {
+                var allDuplicatesIsolated = _filesToReport
+                    .Where(sameContentFiles => sameContentFiles.AllDuplicatesIsolated)
+                    .ToArray();
+
+                return allDuplicatesIsolated;
+            }
+        }
+
+        public IReadOnlyCollection<SameContentFilesInfo> IsolatedFilesOnly
+        {
+            get
+            {
+                var isolatedFilesOnly = _filesToReport
+                    .Where(sameContentFiles => sameContentFiles.ContainsIsolatedFilesOnly)
+                    .ToArray();
+
+                return isolatedFilesOnly;
+            }
+        }
 
         public IReadOnlyCollection<DataLocation> DataLocations => _dataLocations;
 
@@ -51,13 +74,13 @@ namespace OrdinaryDumpDeduplicator
         public Dictionary<Directory, FileInfo[]> GroupDuplicatesByDirectories(Boolean includeIsolatedDuplicates)
         {
             IEnumerable<SameContentFilesInfo> allDuplicatesByHash;
-            if (includeIsolatedDuplicates)
+            if (!includeIsolatedDuplicates)
             {
-                allDuplicatesByHash = System.Linq.Enumerable.Concat(_uniqueIsolatedFiles, System.Linq.Enumerable.Concat(_unprocessedDuplicates, _allDuplicatesIsolated));
+                allDuplicatesByHash = _filesToReport.Where(sameContentFiles => !sameContentFiles.AllDuplicatesIsolated);
             }
             else
             {
-                allDuplicatesByHash = System.Linq.Enumerable.Concat(_uniqueIsolatedFiles, _unprocessedDuplicates);
+                allDuplicatesByHash = _filesToReport;
             }
 
             if (_directoriesWithDuplicates == null)
