@@ -11,6 +11,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             InitializeComponent();
 
             SetDirectoryPath(@"\\VBOXSVR\files\Test data for deduplication");
+            SetStateOfTasksButtons();
         }
 
         public event Action<String> AddDataLocationRequested;
@@ -177,27 +178,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         private void listView1_ItemChecked(object sender, ItemCheckedEventArgs e)
         {
-            Boolean isPossibleToRescanDataLocation = false;
-            Boolean isPossibleToSearchDuplicates = false;
-
-            if (listView1.CheckedItems != null && listView1.CheckedItems.Count >= 1)
-            {
-                isPossibleToSearchDuplicates = true;
-
-                IReadOnlyCollection<ItemToView> checkedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.CheckedItems));
-                if (checkedObjects.Count == 1)
-                {
-                    isPossibleToRescanDataLocation = true;
-                }
-            }
-
-            if (!isPossibleToRescanDataLocation)
-            {
-                isPossibleToRescanDataLocation = listView1.SelectedItems != null && listView1.SelectedItems.Count == 1;
-            }
-
-            button3.Enabled = isPossibleToRescanDataLocation;
-            button4.Enabled = isPossibleToSearchDuplicates;
+            SetStateOfTasksButtons();
         }
 
         private void listView1_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)
@@ -224,6 +205,31 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 Boolean allowedToClose = ApplicationCloseRequested.Invoke();
                 e.Cancel = !allowedToClose;
             }
+        }
+
+        private void SetStateOfTasksButtons()
+        {
+            Boolean isPossibleToRescanDataLocation = false;
+            Boolean isPossibleToSearchDuplicates = false;
+
+            if (listView1.CheckedItems != null && listView1.CheckedItems.Count >= 1)
+            {
+                isPossibleToSearchDuplicates = true;
+
+                IReadOnlyCollection<ItemToView> checkedObjects = GetObjectsFromListViewItems(ToEnumerable(listView1.CheckedItems));
+                if (checkedObjects.Count == 1)
+                {
+                    isPossibleToRescanDataLocation = true;
+                }
+            }
+
+            if (!isPossibleToRescanDataLocation)
+            {
+                isPossibleToRescanDataLocation = listView1.SelectedItems != null && listView1.SelectedItems.Count == 1;
+            }
+
+            button3.Enabled = isPossibleToRescanDataLocation;
+            button4.Enabled = isPossibleToSearchDuplicates;
         }
 
         #endregion
