@@ -178,14 +178,14 @@ namespace OrdinaryDumpDeduplicator.Desktop
             // 
             this.moveToDuplicatesToolStripMenuItem.Name = "moveToDuplicatesToolStripMenuItem";
             this.moveToDuplicatesToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
-            this.moveToDuplicatesToolStripMenuItem.Text = "Move to duplicates";
+            this.moveToDuplicatesToolStripMenuItem.Text = "Isolate duplicate";
             this.moveToDuplicatesToolStripMenuItem.Click += new System.EventHandler(this.moveToDuplicatesToolStripMenuItem_Click);
             // 
             // deleteToolStripMenuItem
             // 
             this.deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
             this.deleteToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
-            this.deleteToolStripMenuItem.Text = "Delete";
+            this.deleteToolStripMenuItem.Text = "Delete duplicate";
             this.deleteToolStripMenuItem.Click += new System.EventHandler(this.deleteToolStripMenuItem_Click);
             // 
             // DuplicateReportForm
