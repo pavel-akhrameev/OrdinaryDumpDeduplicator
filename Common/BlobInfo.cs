@@ -46,12 +46,12 @@ namespace OrdinaryDumpDeduplicator.Common
             this._size = size;
             if (_size == 0)
             {
-                this._sha1Hash = new Byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                // da39a3ee5e6b4b0d3255bfef95601890afd80709
+                this._sha1Hash = new Byte[] { 218, 57, 163, 238, 94, 107, 75, 13, 50, 85, 191, 239, 149, 96, 24, 144, 175, 216, 7, 9 }; // Empty hash.
             }
             else if (_size == -1)
             {
-                // da39a3ee5e6b4b0d3255bfef95601890afd80709
-                this._sha1Hash = new Byte[] { 218, 57, 163, 238, 94, 107, 75, 13, 50, 85, 191, 239, 149, 96, 24, 144, 175, 216, 7, 9 }; // Empty hash.
+                this._sha1Hash = new Byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             }
             else
             {

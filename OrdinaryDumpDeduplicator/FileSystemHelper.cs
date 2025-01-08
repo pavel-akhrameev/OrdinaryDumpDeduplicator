@@ -28,6 +28,11 @@ namespace OrdinaryDumpDeduplicator
                 throw new ArgumentNullException(nameof(path));
             }
 
+            if (String.Equals(relativeTo, path, StringComparison.Ordinal))
+            {
+                return String.Empty;
+            }
+
             String correctRelativeTo;
             if (relativeTo.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
             {
@@ -64,12 +69,12 @@ namespace OrdinaryDumpDeduplicator
 
         public static String GetCombinedPath(String firstPathPart, String secondPathPart)
         {
-            if (String.IsNullOrEmpty(firstPathPart))
+            if (String.IsNullOrWhiteSpace(firstPathPart))
             {
                 throw new ArgumentNullException(nameof(firstPathPart));
             }
 
-            if (String.IsNullOrEmpty(secondPathPart))
+            if (secondPathPart == null)
             {
                 throw new ArgumentNullException(nameof(secondPathPart));
             }

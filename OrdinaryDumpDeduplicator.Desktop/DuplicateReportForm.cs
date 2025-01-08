@@ -7,7 +7,7 @@ using OrdinaryDumpDeduplicator.Common;
 
 namespace OrdinaryDumpDeduplicator.Desktop
 {
-    public partial class DuplicateReportForm : Form, IDuplicatesViewModel
+    internal partial class DuplicateReportForm : Form, IDuplicatesViewModel
     {
         private readonly ContextMenuStrip _emptyContextMenuStrip = new ContextMenuStrip();
 

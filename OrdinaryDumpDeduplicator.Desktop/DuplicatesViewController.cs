@@ -13,7 +13,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         private ItemToView[] _itemsInReport;
         private IReadOnlyCollection<DirectoryWithDuplicates> _duplicatesByDirectories;
-        private Boolean _hideIsolatedDuplicates;
 
         public DuplicatesViewController(DuplicateReport duplicateReport, IDuplicatesViewModel duplicatesViewModel)
         {
@@ -23,7 +22,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         public void ViewDuplicatesByHash(Boolean hideIsolatedDuplicates, Boolean doResetForm)
         {
-            _hideIsolatedDuplicates = hideIsolatedDuplicates;
             // TODO: Переделать на IEnumerable для оптимизации.
 
             IReadOnlyCollection<SameContentFilesInfo> uniqueIsolatedFiles = _duplicateReport.IsolatedFilesOnly;
@@ -63,8 +61,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         public void ViewDuplicatesByFolders(Boolean hideIsolatedDuplicates)
         {
-            _hideIsolatedDuplicates = hideIsolatedDuplicates;
-
             _duplicatesByDirectories = _duplicateReport.GetDuplicatesFoundByDirectories(!hideIsolatedDuplicates);
             _itemsInReport = MakeViewItems(_duplicatesByDirectories, hideIsolatedDuplicates);
             _duplicatesViewModel.SetTreeViewItems(_itemsInReport, resetForm: false);
