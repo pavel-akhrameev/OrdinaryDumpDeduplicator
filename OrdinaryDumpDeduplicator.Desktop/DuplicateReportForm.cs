@@ -1,9 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-
-using OrdinaryDumpDeduplicator.Common;
 
 namespace OrdinaryDumpDeduplicator.Desktop
 {
@@ -12,6 +11,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
         private readonly ContextMenuStrip _emptyContextMenuStrip = new ContextMenuStrip();
 
         private Boolean _ignoreEventsFromControls = false;
+
+        private Dictionary<ItemToView, TreeNode> _treeViewItems;
+        private Dictionary<TreeNode, TreeNode> _parentNodes;
 
         public DuplicateReportForm()
         {
@@ -35,6 +37,30 @@ namespace OrdinaryDumpDeduplicator.Desktop
             else
             {
                 SetTreeViewItemsInternal(treeViewItems, resetForm);
+            }
+        }
+
+        public void AddTreeViewItem(ItemToView treeViewItem, ItemToView parentItemToView)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => AddTreeViewItemInternal(treeViewItem, parentItemToView)));
+            }
+            else
+            {
+                AddTreeViewItemInternal(treeViewItem, parentItemToView);
+            }
+        }
+
+        public void DeleteTreeViewItem(ItemToView treeViewItem)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => DeleteTreeViewItemInternal(treeViewItem)));
+            }
+            else
+            {
+                DeleteTreeViewItemInternal(treeViewItem);
             }
         }
 
@@ -87,6 +113,9 @@ namespace OrdinaryDumpDeduplicator.Desktop
         private void SetTreeViewItemsInternal(ItemToView[] treeViewItems, Boolean resetForm)
         {
             treeView1.Nodes.Clear();
+            _treeViewItems = new Dictionary<ItemToView, TreeNode>();
+            _parentNodes = new Dictionary<TreeNode, TreeNode>();
+
             Boolean viewFullPath = radioButton1.Checked; // TODO
 
             if (resetForm)
@@ -101,7 +130,89 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
         }
 
-        public void AddSessionMessageInternal(String message)
+        private void AddTreeViewItemInternal(ItemToView treeViewItemToAdd, ItemToView parentItemToView = null)
+        {
+            TreeNode treeNode = MakeTreeNodeWithChildren(treeViewItemToAdd);
+
+            if (parentItemToView != null)
+            {
+                if (_treeViewItems.TryGetValue(parentItemToView, out TreeNode parentTreeNode))
+                {
+                    parentTreeNode.Nodes.Add(treeNode);
+                    _parentNodes.Add(treeNode, parentTreeNode);
+                }
+                else
+                {
+                    throw new Exception(""); // TODO
+                }
+            }
+            else
+            {
+                treeView1.Nodes.Add(treeNode);
+            }
+        }
+
+        private void DeleteTreeViewItemInternal(ItemToView existingTreeViewItem)
+        {
+            if (_treeViewItems.TryGetValue(existingTreeViewItem, out TreeNode treeNode))
+            {
+                TreeNode parentNode = _parentNodes[treeNode];
+                parentNode.Nodes.Remove(treeNode);
+
+                _treeViewItems.Remove(existingTreeViewItem);
+            }
+        }
+
+        private TreeNode MakeTreeNodeWithChildren(ItemToView itemInReport)
+        {
+            TreeNode[] childNodes;
+
+            ItemToView[] childItems = itemInReport.ChildItems;
+            if (childItems != null && childItems.Length > 0)
+            {
+                childNodes = new TreeNode[childItems.Length];
+
+                for (Int32 index = 0; index < childItems.Length; index++)
+                {
+                    ItemToView childItem = childItems[index];
+                    TreeNode childNode = MakeTreeNodeWithChildren(childItem);
+                    childNodes[index] = childNode;
+                }
+            }
+            else
+            {
+                childNodes = new TreeNode[] { };
+            }
+
+            TreeNode treeNode = MakeTreeNode(itemInReport, childNodes);
+            return treeNode;
+        }
+
+        private TreeNode MakeTreeNode(ItemToView itemInReport, TreeNode[] children = null)
+        {
+            TreeNode treeNode;
+            if (children != null)
+            {
+                treeNode = new TreeNode(itemInReport.Name, children);
+
+                foreach (TreeNode childTreeNode in children)
+                {
+                    _parentNodes.Add(childTreeNode, treeNode);
+                }
+            }
+            else
+            {
+                treeNode = new TreeNode(itemInReport.Name);
+            }
+
+            treeNode.ForeColor = itemInReport.Color;
+            treeNode.Tag = itemInReport;
+
+            _treeViewItems.Add(itemInReport, treeNode);
+            return treeNode;
+        }
+
+        private void AddSessionMessageInternal(String message)
         {
             textBox1.Text = message;
         }
@@ -263,49 +374,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         #region Private static methods
 
-        private static TreeNode MakeTreeNodeWithChildren(ItemToView itemInReport)
-        {
-            TreeNode[] childNodes;
-
-            ItemToView[] childItems = itemInReport.ChildItems;
-            if (childItems != null && childItems.Length > 0)
-            {
-                childNodes = new TreeNode[childItems.Length];
-
-                for (Int32 index = 0; index < childItems.Length; index++)
-                {
-                    ItemToView childItem = childItems[index];
-                    TreeNode childNode = MakeTreeNodeWithChildren(childItem);
-                    childNodes[index] = childNode;
-                }
-            }
-            else
-            {
-                childNodes = new TreeNode[] { };
-            }
-
-            TreeNode treeNode = MakeTreeNode(itemInReport, childNodes);
-            return treeNode;
-        }
-
-        private static TreeNode MakeTreeNode(ItemToView itemInReport, TreeNode[] children = null)
-        {
-            TreeNode treeNode;
-            if (children != null)
-            {
-                treeNode = new TreeNode(itemInReport.Name, children);
-            }
-            else
-            {
-                treeNode = new TreeNode(itemInReport.Name);
-            }
-
-            treeNode.ForeColor = itemInReport.Color;
-            treeNode.Tag = itemInReport;
-
-            return treeNode;
-        }
-
         private static ItemToView GetTreeViewItem(TreeNode treeNode)
         {
             Object nodeTag = treeNode.Tag;
@@ -325,6 +393,5 @@ namespace OrdinaryDumpDeduplicator.Desktop
         }
 
         #endregion
-
     }
 }

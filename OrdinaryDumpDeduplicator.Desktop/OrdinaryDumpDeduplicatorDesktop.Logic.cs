@@ -160,6 +160,22 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         #region Private static methods
 
+        private static DataLocation[] GetDataLocations(IReadOnlyCollection<ItemToView> itemsToView) // TODO: optimize
+        {
+            var dataLocations = new List<DataLocation>(itemsToView.Count);
+            foreach (ItemToView itemToView in itemsToView)
+            {
+                if (itemToView == null || itemToView.WrappedObject == null || itemToView.Type != typeof(DataLocation))
+                {
+                    throw new Exception("ItemToView is not valid."); // TODO
+                }
+
+                dataLocations.Add(itemToView.WrappedObject as DataLocation);
+            }
+
+            return dataLocations.ToArray();
+        }
+
         private static ItemToView[] MakeViewItems(IReadOnlyCollection<DataLocation> dataLocations)
         {
             var itemsToView = new List<ItemToView>(dataLocations.Count);
@@ -177,22 +193,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
             String dataLocationString = dataLocation.Path;
             var itemToView = new ItemToView(dataLocation, typeof(DataLocation), childItems: new ItemToView[] { }, dataLocationString, System.Drawing.Color.Black, isMoveable: false, isDeletable: true, isHidden: false);
             return itemToView;
-        }
-
-        private static DataLocation[] GetDataLocations(IReadOnlyCollection<ItemToView> itemsToView)
-        {
-            var dataLocations = new List<DataLocation>(itemsToView.Count);
-            foreach (ItemToView itemToView in itemsToView)
-            {
-                if (itemToView == null || itemToView.WrappedObject == null || itemToView.Type != typeof(DataLocation))
-                {
-                    throw new Exception("ItemToView is not valid."); // TODO
-                }
-
-                dataLocations.Add(itemToView.WrappedObject as DataLocation);
-            }
-
-            return dataLocations.ToArray();
         }
 
         private static String TimeSpanToString(TimeSpan timeSpan)

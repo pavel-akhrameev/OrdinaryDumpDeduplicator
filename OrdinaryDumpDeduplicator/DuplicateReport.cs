@@ -143,6 +143,18 @@ namespace OrdinaryDumpDeduplicator
 
         #endregion
 
+        internal void AddFileInfo(FileInfo fileInfo)
+        {
+            SameContentFilesInfo sameContentFilesInfo = _filesToReport.First(sameContentFiles => fileInfo.BlobInfo.Equals(sameContentFiles.BlobInfo));
+            sameContentFilesInfo.AddFileInfo(fileInfo);
+        }
+
+        internal void RemoveFileInfo(FileInfo fileInfo)
+        {
+            SameContentFilesInfo sameContentFilesInfo = _filesToReport.First(sameContentFiles => fileInfo.BlobInfo.Equals(sameContentFiles.BlobInfo));
+            sameContentFilesInfo.RemoveFileInfo(fileInfo);
+        }
+
         #region Private methods
 
         private static void AddDirectory(Dictionary<Directory, HashSet<Directory>> directories, Directory directoryToAdd)
