@@ -59,15 +59,16 @@ namespace OrdinaryDumpDeduplicator
             return getDuplicatesTask;
         }
 
-        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
+        public IDictionary<FileInfo, FileInfo> MoveDuplicatesToSpecialFolder(DuplicateReport duplicateReport, IReadOnlyCollection<FileInfo> duplicatesToMove)
         {
-            _duplicatesProcessor.MoveKnownDuplicatesToSpecialFolder(duplicateReport, duplicates);
+            IDictionary<FileInfo, FileInfo> movedFilesInfo = _duplicatesProcessor.MoveDuplicatesToSpecialFolder(duplicateReport, duplicatesToMove);
+            return movedFilesInfo;
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, FileInfo[] filesToDelete)
+        public IReadOnlyCollection<FileInfo> DeleteDuplicates(DuplicateReport duplicateReport, IReadOnlyCollection<FileInfo> duplicatesToDelete)
         {
-            //var fileObjectsToProcess = GetFiles(ItemToViews);
-            _duplicatesProcessor.DeleteDuplicate(duplicateReport, filesToDelete);
+            IReadOnlyCollection<FileInfo> removedDuplicatesInfo = _duplicatesProcessor.DeleteDuplicates(duplicateReport, duplicatesToDelete);
+            return removedDuplicatesInfo;
         }
 
         #endregion

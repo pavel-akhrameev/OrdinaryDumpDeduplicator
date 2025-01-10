@@ -82,5 +82,24 @@ namespace OrdinaryDumpDeduplicator
             String combinedPath = System.IO.Path.Combine(firstPathPart, secondPathPart);
             return combinedPath;
         }
+
+        public static System.Collections.Generic.IReadOnlyDictionary<String, String> GetChainOfNestedDirectories(DataLocation dataLocation, String directoryRelativePath)
+        {
+            String rootDirectoryPath = dataLocation.Directory.Path;
+            String[] pathElements = directoryRelativePath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+
+            var nestedDirectories = new System.Collections.Generic.Dictionary<String, String>(pathElements.Length);
+            String currentDirectoryPath = rootDirectoryPath;
+            for (Int16 index = 0; index < pathElements.Length; index++)
+            {
+                String pathElement = pathElements[index]; // Directory name.
+                String newDirectoryPath = GetCombinedPath(currentDirectoryPath, pathElement);
+
+                nestedDirectories.Add(newDirectoryPath, pathElement);
+                currentDirectoryPath = newDirectoryPath;
+            }
+
+            return nestedDirectories;
+        }
     }
 }

@@ -8,20 +8,24 @@ namespace OrdinaryDumpDeduplicator.Desktop
 {
     internal class DuplicatesViewController
     {
+        private readonly OrdinaryDumpDeduplicator _ordinaryDumpDeduplicator;
         private readonly DuplicateReport _duplicateReport;
         private readonly IDuplicatesViewModel _duplicatesViewModel;
 
         private ItemToView[] _itemsInReport;
         private IReadOnlyCollection<DirectoryWithDuplicates> _duplicatesByDirectories;
+        private Boolean _hideIsolatedDuplicates;
 
-        public DuplicatesViewController(DuplicateReport duplicateReport, IDuplicatesViewModel duplicatesViewModel)
+        public DuplicatesViewController(OrdinaryDumpDeduplicator deduplicator, DuplicateReport duplicateReport, IDuplicatesViewModel duplicatesViewModel)
         {
+            this._ordinaryDumpDeduplicator = deduplicator;
             this._duplicateReport = duplicateReport;
             this._duplicatesViewModel = duplicatesViewModel;
         }
 
         public void ViewDuplicatesByHash(Boolean hideIsolatedDuplicates, Boolean doResetForm)
         {
+            _hideIsolatedDuplicates = hideIsolatedDuplicates;
             // TODO: Переделать на IEnumerable для оптимизации.
 
             IReadOnlyCollection<SameContentFilesInfo> uniqueIsolatedFiles = _duplicateReport.IsolatedFilesOnly;
@@ -61,9 +65,57 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         public void ViewDuplicatesByFolders(Boolean hideIsolatedDuplicates)
         {
+            _hideIsolatedDuplicates = hideIsolatedDuplicates;
+
             _duplicatesByDirectories = _duplicateReport.GetDuplicatesFoundByDirectories(!hideIsolatedDuplicates);
             _itemsInReport = MakeViewItems(_duplicatesByDirectories, hideIsolatedDuplicates);
             _duplicatesViewModel.SetTreeViewItems(_itemsInReport, resetForm: false);
+        }
+
+        public void MoveToDuplicates(ItemToView[] treeViewItems)
+        {
+            IReadOnlyDictionary<FileInfo, ItemToView> itemsAndFilesToMove = GetDuplicates(treeViewItems);
+            var duplicatesToMove = new List<FileInfo>(itemsAndFilesToMove.Keys);
+            IDictionary<FileInfo, FileInfo> movedFilesInfo = _ordinaryDumpDeduplicator.MoveDuplicatesToSpecialFolder(_duplicateReport, duplicatesToMove);
+
+            foreach (KeyValuePair<FileInfo, ItemToView> movedItem in itemsAndFilesToMove)
+            {
+                if (movedFilesInfo.TryGetValue(movedItem.Key, out FileInfo movedFileInfo))
+                {
+                    // File moved.
+                    _duplicatesViewModel.DeleteTreeViewItem(movedItem.Value);
+
+                    ItemToView fileViewItem = MakeViewItem(movedFileInfo, _hideIsolatedDuplicates);
+                    if (!fileViewItem.IsHidden)
+                    {
+                        ItemToView parentItemToView = GetParentItemToView(movedItem.Key);
+                        _duplicatesViewModel.AddTreeViewItem(fileViewItem, parentItemToView);
+                    }
+
+                    // TODO: Обновить ItemToView от родительского SameContentFilesInfo или от DirectoryWithDuplicates.
+                    // TODO: (?) Как понять, нужно ли сейчас обновить родительский item?
+                }
+            }
+        }
+
+        public void DeleteDuplicates(ItemToView[] treeViewItems)
+        {
+            IReadOnlyDictionary<FileInfo, ItemToView> itemsAndFilesToDelete = GetDuplicates(treeViewItems);
+            var duplicatesToDelete = new List<FileInfo>(itemsAndFilesToDelete.Keys);
+            IReadOnlyCollection<FileInfo> removedDuplicatesInfo = _ordinaryDumpDeduplicator.DeleteDuplicates(_duplicateReport, duplicatesToDelete);
+            HashSet<FileInfo> removedDuplicatesSet = new HashSet<FileInfo>(removedDuplicatesInfo);
+
+            foreach (KeyValuePair<FileInfo, ItemToView> deletedItem in itemsAndFilesToDelete)
+            {
+                if (removedDuplicatesSet.Contains(deletedItem.Key))
+                {
+                    // File removed.
+                    _duplicatesViewModel.DeleteTreeViewItem(deletedItem.Value);
+
+                    // TODO: Обновить ItemToView от родительского SameContentFilesInfo или от DirectoryWithDuplicates.
+                    // TODO: (?) Как понять, нужно ли сейчас обновить родительский item?
+                }
+            }
         }
 
         #region Private methods
@@ -93,7 +145,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         #region Private static methods
 
-        public static IReadOnlyDictionary<FileInfo, ItemToView> GetDuplicates(ItemToView[] treeViewItems)
+        private static IReadOnlyDictionary<FileInfo, ItemToView> GetDuplicates(ItemToView[] treeViewItems)
         {
             var fileObjects = new Dictionary<FileInfo, ItemToView>(treeViewItems.Length);
             foreach (ItemToView treeViewItem in treeViewItems)

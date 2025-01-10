@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
 
 using OrdinaryDumpDeduplicator.Common;
@@ -11,6 +10,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         #region Private fields
 
         private DuplicateReport _currentDuplicateReport; // We show only one DuplicateReportForm at a time.
+        private DuplicatesViewController _currentDuplicatesViewController;
 
         #endregion
 
@@ -93,10 +93,10 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
                     TimeSpan timeSpent = DateTime.Now.Subtract(now);
                     String timeSpentString = TimeSpanToString(timeSpent);
-                    _windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
+                    //_windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
 
-                    var duplicatesViewController = new DuplicatesViewController(duplicateReport, _windowsManager.DuplicatesViewModel);
-                    duplicatesViewController.ViewDuplicatesByHash(hideIsolatedDuplicates, doResetForm);
+                    _currentDuplicatesViewController = new DuplicatesViewController(_ordinaryDumpDeduplicator, duplicateReport, _windowsManager.DuplicatesViewModel);
+                    _currentDuplicatesViewController.ViewDuplicatesByHash(hideIsolatedDuplicates, doResetForm);
                     _windowsManager.ShowDuplicatesForm();
                 });
             }
@@ -118,8 +118,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
                     String timeSpentString = TimeSpanToString(timeSpent);
                     _windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
 
-                    var duplicatesViewController = new DuplicatesViewController(duplicateReport, _windowsManager.DuplicatesViewModel);
-                    duplicatesViewController.ViewDuplicatesByFolders(hideIsolatedDuplicates);
+                    _currentDuplicatesViewController = new DuplicatesViewController(_ordinaryDumpDeduplicator, duplicateReport, _windowsManager.DuplicatesViewModel);
+                    _currentDuplicatesViewController.ViewDuplicatesByFolders(hideIsolatedDuplicates);
                     _windowsManager.ShowDuplicatesForm();
                 });
             }
@@ -127,20 +127,12 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         private void MoveToDuplicatesRequested(ItemToView[] treeViewItems)
         {
-            IReadOnlyDictionary<FileInfo, ItemToView> duplicatesToMove = DuplicatesViewController.GetDuplicates(treeViewItems);
-            _ordinaryDumpDeduplicator.MoveKnownDuplicatesToSpecialFolder(_currentDuplicateReport, duplicatesToMove.Keys.ToArray());
-
-            // TODO: обновить данные в БД.
-            // TODO: обновить данные на форме.
+            _currentDuplicatesViewController.MoveToDuplicates(treeViewItems);
         }
 
         private void DeleteDuplicatesRequested(ItemToView[] treeViewItems)
         {
-            IReadOnlyDictionary<FileInfo, ItemToView> duplicatesToDelete = DuplicatesViewController.GetDuplicates(treeViewItems);
-            _ordinaryDumpDeduplicator.DeleteDuplicate(_currentDuplicateReport, duplicatesToDelete.Keys.ToArray());
-
-            // TODO: обновить данные в БД.
-            // TODO: обновить данные на форме.
+            _currentDuplicatesViewController.DeleteDuplicates(treeViewItems);
         }
 
         private void AboutFormRequested()
