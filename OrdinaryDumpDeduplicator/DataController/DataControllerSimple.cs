@@ -45,6 +45,11 @@ namespace OrdinaryDumpDeduplicator
             _files.Add(file);
         }
 
+        public void RemoveFile(File file)
+        {
+            _files.Remove(file);
+        }
+
         public void AddDirectory(Directory directory)
         {
             // Вот тут не происходит обновление.
@@ -212,6 +217,24 @@ namespace OrdinaryDumpDeduplicator
             // Nothing to do here.
         }
 
+        public FileState GetFileState(File file, Inspection inspection)
+        {
+            FileState fileStateFound = _fileStates
+                .FirstOrDefault(fileState => fileState.File == file && fileState.Inspection == inspection);
+
+            return fileStateFound;
+        }
+
+        public FileState GetLastFileState(File file)
+        {
+            FileState fileStateFound = _fileStates
+                .Where(fileState => fileState.File == file)
+                .OrderBy(fileState => fileState.Inspection.FinishDateTime) // TODO: такое годится только в прототипе.
+                .LastOrDefault();
+
+            return fileStateFound;
+        }
+
         public void AddBlobInfo(BlobInfo blobInfo)
         {
             if (!_blobInfos.Contains(blobInfo))
@@ -239,13 +262,16 @@ namespace OrdinaryDumpDeduplicator
 
                 if (blobInfo != null)
                 {
-                    if (!blobGroups.ContainsKey(blobInfo))
+                    if (blobInfo.Size >= 0)
                     {
-                        blobGroups[blobInfo] = new HashSet<File>();
-                    }
+                        if (!blobGroups.ContainsKey(blobInfo))
+                        {
+                            blobGroups[blobInfo] = new HashSet<File>();
+                        }
 
-                    HashSet<File> duplicateFiles = blobGroups[blobInfo];
-                    duplicateFiles.Add(file);
+                        HashSet<File> duplicateFiles = blobGroups[blobInfo];
+                        duplicateFiles.Add(file);
+                    }
                 }
                 else
                 {
