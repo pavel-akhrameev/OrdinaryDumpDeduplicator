@@ -7,6 +7,54 @@ namespace OrdinaryDumpDeduplicator
 {
     internal sealed class DuplicatesProcessor
     {
+        #region Nested struct
+
+        private struct DirectoryForIsolatedDuplicates
+        {
+            public readonly DataLocation DataLocation;
+            private readonly String _originalRelativePath;
+
+            private String _relativePath;
+            private String _fullPath;
+
+            public DirectoryForIsolatedDuplicates(DataLocation dataLocation, String directoryRelativePath)
+            {
+                this.DataLocation = dataLocation;
+                this._originalRelativePath = directoryRelativePath;
+
+                this._relativePath = null;
+                this._fullPath = null;
+            }
+
+            public String RelativePath
+            {
+                get
+                {
+                    if (_relativePath == null)
+                    {
+                        _relativePath = FileSystemHelper.GetCombinedPath(FOLDER_NAME_FOR_DUPLICATES, _originalRelativePath);
+                    }
+
+                    return _relativePath;
+                }
+            }
+
+            public String FullPath
+            {
+                get
+                {
+                    if (_fullPath == null)
+                    {
+                        _fullPath = FileSystemHelper.GetCombinedPath(DataLocation.Path, RelativePath);
+                    }
+
+                    return _fullPath;
+                }
+            }
+        }
+
+        #endregion
+
         public const String FOLDER_NAME_FOR_DUPLICATES = "isolated duplicates";
 
         private readonly IDataController _dataController;
@@ -47,65 +95,100 @@ namespace OrdinaryDumpDeduplicator
             return new DuplicateReport(filesToReport, dataLocations);
         }
 
-        public void MoveKnownDuplicatesToSpecialFolder(DuplicateReport duplicateReport, FileInfo[] duplicates)
+        public IDictionary<FileInfo, FileInfo> MoveDuplicatesToSpecialFolder(DuplicateReport duplicateReport, IReadOnlyCollection<FileInfo> duplicatesToMove)
         {
-            // Словарь, у какой DataLocation какой путь к папке 'isolated duplicates'.
-            var directoriesForDuplicates = new Dictionary<DataLocation, String>();
-            foreach (var dataLocation in duplicateReport.DataLocations)
-            {
-                String directoryPathForDuplicates = System.IO.Path.Combine(dataLocation.Path, FOLDER_NAME_FOR_DUPLICATES);
-                directoriesForDuplicates.Add(dataLocation, directoryPathForDuplicates);
-            }
-
-            // Собрать пути в папке для дубликатов для каждого файла.
-            var pathsForDuplicates = new Dictionary<Directory, String>();
-            foreach (FileInfo duplicate in duplicates)
+            // Собрать пути в папке изолированных дубликатов для каждого файла.
+            var isolatedDuplicatesDirectories = new Dictionary<Directory, DirectoryForIsolatedDuplicates>();
+            foreach (FileInfo duplicate in duplicatesToMove)
             {
                 Directory parentDirectory = duplicate.File.ParentDirectory;
-                if (!pathsForDuplicates.ContainsKey(parentDirectory))
+                if (!isolatedDuplicatesDirectories.TryGetValue(parentDirectory, out DirectoryForIsolatedDuplicates directoryForIsolatedDuplicates))
                 {
                     DataLocation dataLocation = duplicate.DataLocation;
-                    String folderForDuplicates = directoriesForDuplicates[dataLocation];
-                    String relativeDirectoyPath = FileSystemHelper.GetRelativePath(dataLocation.Path, parentDirectory.Path);
-                    String folderForDuplicate = FileSystemHelper.GetCombinedPath(folderForDuplicates, relativeDirectoyPath);
+                    String directoryRelativePath = FileSystemHelper.GetRelativePath(dataLocation.Path, parentDirectory.Path);
 
-                    pathsForDuplicates.Add(parentDirectory, folderForDuplicate);
+                    directoryForIsolatedDuplicates = new DirectoryForIsolatedDuplicates(dataLocation, directoryRelativePath);
+                    isolatedDuplicatesDirectories.Add(parentDirectory, directoryForIsolatedDuplicates);
                 }
             }
 
-            // Подготовить папки для дубликатов.
-            foreach (String patchForDuplicates in pathsForDuplicates.Values)
+            // Подготовить папки для дубликатов. Если папки нет, то она создаётся.
+            var originalAndIsolatedDuplicateDirectories = new Dictionary<Directory, Directory>();
+            foreach (KeyValuePair<Directory, DirectoryForIsolatedDuplicates> isolatedDuplicatesDirectory in isolatedDuplicatesDirectories)
             {
-                if (!System.IO.Directory.Exists(patchForDuplicates))
+                DirectoryForIsolatedDuplicates isolatedDuplicatesDirectoryInfo = isolatedDuplicatesDirectory.Value;
+                String destinationDirectoryPath = isolatedDuplicatesDirectoryInfo.FullPath;
+                if (!System.IO.Directory.Exists(destinationDirectoryPath))
                 {
-                    System.IO.Directory.CreateDirectory(patchForDuplicates);
+                    System.IO.Directory.CreateDirectory(destinationDirectoryPath);
                 }
+
+                Directory directoryForIsolatedDuplicates = _dataController.FindDirectory(destinationDirectoryPath);
+                if (directoryForIsolatedDuplicates == null)
+                {
+                    directoryForIsolatedDuplicates = AddDirectoryForIsolatedDuplicates(isolatedDuplicatesDirectoryInfo);
+                }
+
+                originalAndIsolatedDuplicateDirectories.Add(isolatedDuplicatesDirectory.Key, directoryForIsolatedDuplicates);
             }
 
-            foreach (FileInfo duplicate in duplicates)
-            {
-                File file = duplicate.File;
-                String folderPathForDuplicate = pathsForDuplicates[file.ParentDirectory];
+            var movedFiles = new Dictionary<FileInfo, FileInfo>();
 
-                String destinationFilePath = FileSystemHelper.GetCombinedPath(folderPathForDuplicate, file.Name);
+            // Физическое перемещение файлов.
+            foreach (FileInfo duplicate in duplicatesToMove)
+            {
+                File fileToMove = duplicate.File;
+                Directory destinationDirectory = originalAndIsolatedDuplicateDirectories[fileToMove.ParentDirectory];
+                DirectoryForIsolatedDuplicates isolatedDuplicatesDirectoryInfo = isolatedDuplicatesDirectories[fileToMove.ParentDirectory];
+                String destinationDirectoryPath = isolatedDuplicatesDirectoryInfo.FullPath;
+                String destinationFilePath = FileSystemHelper.GetCombinedPath(destinationDirectoryPath, fileToMove.Name);
+
+                Boolean isMoved = false;
                 try
                 {
-                    _fileSystemProvider.MoveFile(file, destinationFilePath);
+                    _fileSystemProvider.MoveFile(fileToMove, destinationFilePath);
+                    isMoved = true;
                 }
                 catch (Exception exception)
                 {
                     var exceptionString = exception.ToString();
                 }
+
+                if (isMoved)
+                {
+                    // Обновление информации в БД.
+                    _dataController.RemoveFile(fileToMove);
+                    File movedFile = new File(fileToMove.Name, destinationDirectory);
+                    _dataController.AddFile(movedFile);
+
+                    FileState lastFileState = _dataController.GetLastFileState(fileToMove);
+                    Inspection inspection = lastFileState.Inspection;
+                    lastFileState.SetStatusAndBlobInfo(FileStatus.Removed, BlobInfo.BrokenBlobInfo); // Information of the previous FileState has been corrected.
+
+                    BlobInfo blobInfo = duplicate.BlobInfo;
+                    FileState updatedFileState = new FileState(movedFile, inspection, previousState: lastFileState, lastFileState.Size, lastFileState.Status, lastFileState.DateOfCreation, lastFileState.DateOfLastModification, blobInfo); // TODO: Обновить датуВремя с ФС.
+                    _dataController.AddFileState(updatedFileState);
+
+                    // Обновление информации в DuplicateReport.
+                    duplicateReport.RemoveFileInfo(duplicate);
+                    FileInfo updatedFileInfo = new FileInfo(blobInfo, movedFile, duplicate.DataLocation);
+                    updatedFileInfo.SetDuplicateSort(DuplicateSort.IsolatedDuplicate);
+                    duplicateReport.AddFileInfo(updatedFileInfo);
+
+                    movedFiles.Add(duplicate, updatedFileInfo);
+                }
             }
+
+            return movedFiles;
         }
 
-        public void DeleteDuplicate(DuplicateReport duplicateReport, FileInfo[] filesToDelete)
+        public IReadOnlyCollection<FileInfo> DeleteDuplicates(DuplicateReport duplicateReport, IReadOnlyCollection<FileInfo> filesToDelete)
         {
             IReadOnlyCollection<DataLocation> currentDataLocations = duplicateReport.DataLocations;
             HashSet<Directory> directoriesForIsolatedDuplicates = DataStructureHelper.GetDirectoriesForIsolatedDuplicates(currentDataLocations);
 
             // Собираем только те файлы, которые находятся в папках 'isolated duplicates'.
-            var filesSuitableForDeletion = new HashSet<File>();
+            var filesSuitableForDeletion = new HashSet<FileInfo>();
             foreach (FileInfo duplicate in filesToDelete)
             {
                 Boolean isFileFromIsolatedDuplicatesDir = false;
@@ -120,7 +203,7 @@ namespace OrdinaryDumpDeduplicator
 
                 if (isFileFromIsolatedDuplicatesDir)
                 {
-                    filesSuitableForDeletion.Add(duplicate.File);
+                    filesSuitableForDeletion.Add(duplicate);
                 }
                 else
                 {
@@ -128,17 +211,22 @@ namespace OrdinaryDumpDeduplicator
                 }
             }
 
-            foreach (File file in filesSuitableForDeletion)
+            var removedDuplicatesInfo = new List<FileInfo>();
+
+            foreach (FileInfo fileInfo in filesSuitableForDeletion)
             {
                 try
                 {
-                    _fileSystemProvider.DeleteFile(file);
+                    _fileSystemProvider.DeleteFile(fileInfo.File);
+                    removedDuplicatesInfo.Add(fileInfo);
                 }
                 catch (Exception exception)
                 {
                     var exceptionString = exception.ToString();
                 }
             }
+
+            return removedDuplicatesInfo;
         }
 
         #endregion
@@ -186,6 +274,29 @@ namespace OrdinaryDumpDeduplicator
 
                 fileInfo.SetDuplicateSort(duplicateSort);
             }
+        }
+
+        private Directory AddDirectoryForIsolatedDuplicates(DirectoryForIsolatedDuplicates directoryForIsolatedDuplicates)
+        {
+            Directory currentDirectory = directoryForIsolatedDuplicates.DataLocation.Directory;
+            IReadOnlyDictionary<String, String> chainOfSubDirectories = FileSystemHelper.GetChainOfNestedDirectories(directoryForIsolatedDuplicates.DataLocation, directoryForIsolatedDuplicates.RelativePath);
+            foreach (KeyValuePair<String, String> subDirectoryInfo in chainOfSubDirectories)
+            {
+                String subDirectoryPath = subDirectoryInfo.Key;
+                Directory subDirectory = _dataController.FindDirectory(subDirectoryPath);
+                if (subDirectory == null)
+                {
+                    String directoryName = subDirectoryInfo.Value;
+                    subDirectory = new Directory(directoryName, currentDirectory);
+                    FsUtils.AddSubDirectory(subDirectory, currentDirectory);
+
+                    _dataController.AddDirectory(subDirectory);
+                }
+
+                currentDirectory = subDirectory;
+            }
+
+            return currentDirectory;
         }
 
         #region Private static methods

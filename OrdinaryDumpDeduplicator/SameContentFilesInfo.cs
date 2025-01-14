@@ -8,7 +8,7 @@ namespace OrdinaryDumpDeduplicator
     public class SameContentFilesInfo : IEquatable<SameContentFilesInfo>
     {
         private readonly BlobInfo _blobInfo;
-        private readonly IReadOnlyCollection<FileInfo> _duplicates;
+        private readonly HashSet<FileInfo> _duplicates;
         private readonly Dictionary<DataLocation, HashSet<Directory>> _dataLocationsWithDuplicates;
         private readonly Dictionary<Directory, List<File>> _directoriesWithDuplicates;
 
@@ -17,7 +17,7 @@ namespace OrdinaryDumpDeduplicator
         internal SameContentFilesInfo(BlobInfo blobInfo, IReadOnlyCollection<FileInfo> duplicates)
         {
             this._blobInfo = blobInfo;
-            this._duplicates = duplicates;
+            this._duplicates = new HashSet<FileInfo>(duplicates);
 
             // MakeFilesAndDirectoriesDictionary(_duplicates, out this._dataLocationsWithDuplicates, out this._directoriesWithDuplicates);
 
@@ -105,6 +105,22 @@ namespace OrdinaryDumpDeduplicator
                 Boolean containsIsolatedFilesOnly = this.Peculiarities.HasFlag(BlobPeculiarities.ContainsIsolatedFilesOnly);
                 return containsIsolatedFilesOnly;
             }
+        }
+
+        internal void AddFileInfo(FileInfo fileInfo)
+        {
+            if (!fileInfo.BlobInfo.Equals(_blobInfo))
+            {
+                throw new ArgumentException(""); // TODO
+            }
+
+            _duplicates.Add(fileInfo);
+            fileInfo.SetSameContentFiles(this);
+        }
+
+        internal void RemoveFileInfo(FileInfo fileInfo)
+        {
+            _duplicates.Remove(fileInfo);
         }
 
         #region Overrides of object

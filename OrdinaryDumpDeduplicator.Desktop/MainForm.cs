@@ -4,7 +4,7 @@ using System.Windows.Forms;
 
 namespace OrdinaryDumpDeduplicator.Desktop
 {
-    public partial class MainForm : Form, IMainViewModel
+    internal partial class MainForm : Form, IMainViewModel
     {
         public MainForm()
         {

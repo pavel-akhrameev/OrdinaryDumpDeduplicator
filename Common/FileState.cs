@@ -49,6 +49,15 @@ namespace OrdinaryDumpDeduplicator.Common
 
         public BlobInfo BlobInfo => _blobInfo;
 
+        public Boolean IsFileExistsAndReadable
+        {
+            get
+            {
+                Boolean isFileExistsAndReadable = _blobInfo.Size >= 0 && (_status == FileStatus.New || _status == FileStatus.Unchanged || _status == FileStatus.Modified);
+                return isFileExistsAndReadable;
+            }
+        }
+
         public void SetStatusAndBlobInfo(FileStatus status, BlobInfo blobInfo)
         {
             this._status = status;

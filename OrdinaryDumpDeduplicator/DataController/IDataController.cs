@@ -9,6 +9,8 @@ namespace OrdinaryDumpDeduplicator
     {
         void AddFile(File file);
 
+        void RemoveFile(File file);
+
         void AddDirectory(Directory directory);
 
         Directory FindDirectory(Directory parentDirectory, String name);
@@ -30,6 +32,10 @@ namespace OrdinaryDumpDeduplicator
         void AddFileState(FileState fileState);
 
         void UpdateFileState(FileState fileState);
+
+        FileState GetFileState(File file, Inspection inspection);
+
+        FileState GetLastFileState(File file);
 
         void AddBlobInfo(BlobInfo blobInfo);
 

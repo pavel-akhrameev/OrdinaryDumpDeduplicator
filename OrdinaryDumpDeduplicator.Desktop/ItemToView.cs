@@ -2,7 +2,7 @@
 
 namespace OrdinaryDumpDeduplicator.Desktop
 {
-    public sealed class ItemToView
+    internal sealed class ItemToView
     {
         #region Private fields
 

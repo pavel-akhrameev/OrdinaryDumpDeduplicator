@@ -28,6 +28,11 @@ namespace OrdinaryDumpDeduplicator
                 throw new ArgumentNullException(nameof(path));
             }
 
+            if (String.Equals(relativeTo, path, StringComparison.Ordinal))
+            {
+                return String.Empty;
+            }
+
             String correctRelativeTo;
             if (relativeTo.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
             {
@@ -64,18 +69,37 @@ namespace OrdinaryDumpDeduplicator
 
         public static String GetCombinedPath(String firstPathPart, String secondPathPart)
         {
-            if (String.IsNullOrEmpty(firstPathPart))
+            if (String.IsNullOrWhiteSpace(firstPathPart))
             {
                 throw new ArgumentNullException(nameof(firstPathPart));
             }
 
-            if (String.IsNullOrEmpty(secondPathPart))
+            if (secondPathPart == null)
             {
                 throw new ArgumentNullException(nameof(secondPathPart));
             }
 
             String combinedPath = System.IO.Path.Combine(firstPathPart, secondPathPart);
             return combinedPath;
+        }
+
+        public static System.Collections.Generic.IReadOnlyDictionary<String, String> GetChainOfNestedDirectories(DataLocation dataLocation, String directoryRelativePath)
+        {
+            String rootDirectoryPath = dataLocation.Directory.Path;
+            String[] pathElements = directoryRelativePath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+
+            var nestedDirectories = new System.Collections.Generic.Dictionary<String, String>(pathElements.Length);
+            String currentDirectoryPath = rootDirectoryPath;
+            for (Int16 index = 0; index < pathElements.Length; index++)
+            {
+                String pathElement = pathElements[index]; // Directory name.
+                String newDirectoryPath = GetCombinedPath(currentDirectoryPath, pathElement);
+
+                nestedDirectories.Add(newDirectoryPath, pathElement);
+                currentDirectoryPath = newDirectoryPath;
+            }
+
+            return nestedDirectories;
         }
     }
 }

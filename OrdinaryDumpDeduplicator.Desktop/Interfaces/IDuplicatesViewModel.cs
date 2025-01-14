@@ -12,6 +12,10 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         void SetTreeViewItems(ItemToView[] treeViewItems, Boolean resetForm);
 
+        void AddTreeViewItem(ItemToView treeViewItem, ItemToView parentItemToView);
+
+        void DeleteTreeViewItem(ItemToView treeViewItem);
+
         void AddSessionMessage(String message);
     }
 }
