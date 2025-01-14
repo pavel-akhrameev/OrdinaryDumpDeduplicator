@@ -213,16 +213,34 @@ namespace OrdinaryDumpDeduplicator
 
             var removedDuplicatesInfo = new List<FileInfo>();
 
-            foreach (FileInfo fileInfo in filesSuitableForDeletion)
+            foreach (FileInfo duplicateInfo in filesSuitableForDeletion)
             {
+                File fileToRemove = duplicateInfo.File;
+                Boolean isRemoved = false;
+
                 try
                 {
-                    _fileSystemProvider.DeleteFile(fileInfo.File);
-                    removedDuplicatesInfo.Add(fileInfo);
+                    _fileSystemProvider.DeleteFile(fileToRemove);
+                    isRemoved = true;
+
                 }
                 catch (Exception exception)
                 {
                     var exceptionString = exception.ToString();
+                }
+
+                if (isRemoved)
+                {
+                    // Обновление информации в БД.
+                    _dataController.RemoveFile(fileToRemove);
+
+                    FileState lastFileState = _dataController.GetLastFileState(fileToRemove);
+                    lastFileState.SetStatusAndBlobInfo(FileStatus.Removed, BlobInfo.BrokenBlobInfo);
+
+                    // Обновление информации в DuplicateReport.
+                    duplicateReport.RemoveFileInfo(duplicateInfo);
+
+                    removedDuplicatesInfo.Add(duplicateInfo);
                 }
             }
 

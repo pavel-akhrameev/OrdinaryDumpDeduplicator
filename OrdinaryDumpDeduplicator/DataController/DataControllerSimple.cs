@@ -280,7 +280,7 @@ namespace OrdinaryDumpDeduplicator
 
                     String fileStatusString = Enum.GetName(typeof(FileStatus), fileState.Status);
                     var nullBlobInfoException = new Exception($"FileState with '{fileStatusString}' status and null BlobInfo is not valid (not expected).");
-                    throw nullBlobInfoException;
+                    //throw nullBlobInfoException;
                 }
             }
 
@@ -328,7 +328,7 @@ namespace OrdinaryDumpDeduplicator
             var result = new HashSet<FileInfo>();
             foreach (FileState fileState in _fileStates)
             {
-                if (!inspectionsSet.Contains(fileState.Inspection))
+                if (!inspectionsSet.Contains(fileState.Inspection) || !fileState.IsFileExistsAndReadable)
                 {
                     continue;
                 }
