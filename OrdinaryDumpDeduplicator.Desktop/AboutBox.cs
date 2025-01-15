@@ -95,5 +95,16 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
         }
         #endregion
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            VisitGitHubLink();
+            linkLabel1.LinkVisited = true;
+        }
+
+        private void VisitGitHubLink()
+        {
+            System.Diagnostics.Process.Start("https://github.com/pavel-akhrameev/OrdinaryDumpDeduplicator");
+        }
     }
 }

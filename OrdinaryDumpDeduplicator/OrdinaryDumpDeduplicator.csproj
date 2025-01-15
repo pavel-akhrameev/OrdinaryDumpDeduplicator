@@ -4,7 +4,7 @@
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Authors>Pavel Akhrameev</Authors>
-    <Copyright>Copyright © 2024 Pavel Akhrameev</Copyright>
+    <Copyright>Copyright © 2025 Pavel Akhrameev</Copyright>
     <Version>0.1.0</Version>
   </PropertyGroup>
 

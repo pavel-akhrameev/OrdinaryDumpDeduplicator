@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("OrdinaryDumpDeduplicator")]
-[assembly: AssemblyCopyright("Copyright © 2024 Pavel Akhrameev")]
+[assembly: AssemblyCopyright("Copyright © 2025 Pavel Akhrameev")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -46,7 +46,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             DataLocation dataLocation = dataLocationItem.WrappedObject as DataLocation;
 
             IMainViewModel mainViewModel = _windowsManager.MainViewModel;
-            mainViewModel.AddSessionMessage("Rescan started.");
+            mainViewModel.AddSessionMessage("Scan started.");
             DateTime now = DateTime.Now;
 
             System.Threading.Tasks.Task<DataLocation> doInspectionTask = _ordinaryDumpDeduplicator.DoInspection(dataLocation);
@@ -56,7 +56,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
                 TimeSpan timeSpent = DateTime.Now.Subtract(now);
                 String timeSpentString = TimeSpanToString(timeSpent);
-                mainViewModel.AddSessionMessage($"Rescan finished in {timeSpentString}.");
+                mainViewModel.AddSessionMessage($"Scan finished in {timeSpentString}.");
 
                 GetAndViewDuplicatesByHash(new[] { currentDataLocation }, hideIsolatedDuplicates: true, doResetForm: true); // by default
             });

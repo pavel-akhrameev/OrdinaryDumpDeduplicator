@@ -116,7 +116,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             // 
             // columnHeader2
             // 
-            this.columnHeader2.Text = "Last structure rescan";
+            this.columnHeader2.Text = "Last structure scan";
             this.columnHeader2.Width = 100;
             // 
             // columnHeader3
@@ -125,7 +125,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             // 
             // columnHeader4
             // 
-            this.columnHeader4.Text = "Last rescan of contents";
+            this.columnHeader4.Text = "Last scan of contents";
             this.columnHeader4.Width = 100;
             // 
             // columnHeader5
@@ -192,7 +192,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(126, 23);
             this.button3.TabIndex = 5;
-            this.button3.Text = "Rescan data location";
+            this.button3.Text = "Scan data location";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
@@ -214,7 +214,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.listView2.HideSelection = false;
             this.listView2.Location = new System.Drawing.Point(3, 3);
             this.listView2.Name = "listView2";
-            this.listView2.Size = new System.Drawing.Size(645, 70);
+            this.listView2.Size = new System.Drawing.Size(645, 71);
             this.listView2.TabIndex = 8;
             this.listView2.UseCompatibleStateImageBehavior = false;
             // 
