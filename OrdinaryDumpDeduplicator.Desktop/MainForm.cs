@@ -35,6 +35,18 @@ namespace OrdinaryDumpDeduplicator.Desktop
             }
         }
 
+        public void SetBusyState(Boolean isBusy)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => SetBusyStateInternal(isBusy)));
+            }
+            else
+            {
+                SetBusyStateInternal(isBusy);
+            }
+        }
+
         public void AddSessionMessage(String message)
         {
             if (InvokeRequired)
@@ -73,6 +85,19 @@ namespace OrdinaryDumpDeduplicator.Desktop
             {
                 const Int32 singleItemIndex = 0;
                 listView1.Items[singleItemIndex].Checked = true;
+            }
+        }
+
+        private void SetBusyStateInternal(Boolean isBusy)
+        {
+            if (isBusy)
+            {
+                progressBar1.Style = ProgressBarStyle.Marquee;
+            }
+            else
+            {
+                progressBar1.Style = ProgressBarStyle.Continuous;
+                progressBar1.Value = 0;
             }
         }
 
@@ -286,7 +311,6 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 yield return listViewItem;
             }
         }
-
 
         #endregion
     }

@@ -45,6 +45,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.button4 = new System.Windows.Forms.Button();
             this.listView2 = new System.Windows.Forms.ListView();
             this.textBox2 = new System.Windows.Forms.TextBox();
+            this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -214,7 +215,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.listView2.HideSelection = false;
             this.listView2.Location = new System.Drawing.Point(3, 3);
             this.listView2.Name = "listView2";
-            this.listView2.Size = new System.Drawing.Size(645, 71);
+            this.listView2.Size = new System.Drawing.Size(645, 73);
             this.listView2.TabIndex = 8;
             this.listView2.UseCompatibleStateImageBehavior = false;
             // 
@@ -225,8 +226,17 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.textBox2.Location = new System.Drawing.Point(10, 356);
             this.textBox2.Name = "textBox2";
             this.textBox2.ReadOnly = true;
-            this.textBox2.Size = new System.Drawing.Size(652, 20);
+            this.textBox2.Size = new System.Drawing.Size(445, 20);
             this.textBox2.TabIndex = 10;
+            // 
+            // progressBar1
+            // 
+            this.progressBar1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.progressBar1.Location = new System.Drawing.Point(461, 356);
+            this.progressBar1.Name = "progressBar1";
+            this.progressBar1.Size = new System.Drawing.Size(200, 20);
+            this.progressBar1.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
+            this.progressBar1.TabIndex = 14;
             // 
             // menuStrip1
             // 
@@ -277,6 +287,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
             this.Controls.Add(this.menuStrip1);
             this.Controls.Add(this.splitContainer1);
             this.Controls.Add(this.textBox2);
+            this.Controls.Add(this.progressBar1);
             this.MainMenuStrip = this.menuStrip1;
             this.MinimumSize = new System.Drawing.Size(551, 352);
             this.Name = "MainForm";
@@ -314,6 +325,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.ListView listView2;
         private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.ProgressBar progressBar1;
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;

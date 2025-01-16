@@ -14,6 +14,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         void SetListViewItems(IReadOnlyCollection<ItemToView> items);
 
+        void SetBusyState(Boolean isBusy);
+
         void AddSessionMessage(String message);
     }
 }

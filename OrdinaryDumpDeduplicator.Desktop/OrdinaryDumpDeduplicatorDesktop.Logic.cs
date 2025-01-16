@@ -47,6 +47,7 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
             IMainViewModel mainViewModel = _windowsManager.MainViewModel;
             mainViewModel.AddSessionMessage("Scan started.");
+            mainViewModel.SetBusyState(isBusy: true);
             DateTime now = DateTime.Now;
 
             System.Threading.Tasks.Task<DataLocation> doInspectionTask = _ordinaryDumpDeduplicator.DoInspection(dataLocation);
@@ -59,24 +60,44 @@ namespace OrdinaryDumpDeduplicator.Desktop
                 mainViewModel.AddSessionMessage($"Scan finished in {timeSpentString}.");
 
                 GetAndViewDuplicatesByHash(new[] { currentDataLocation }, hideIsolatedDuplicates: true, doResetForm: true); // by default
+                mainViewModel.SetBusyState(isBusy: false);
             });
         }
 
         private void FindDuplicatesRequested(IReadOnlyCollection<ItemToView> dataLocationItems)
         {
+            _windowsManager.MainViewModel.SetBusyState(isBusy: true);
+
             DataLocation[] dataLocations = GetDataLocations(dataLocationItems);
-            GetAndViewDuplicatesByHash(dataLocations, hideIsolatedDuplicates: true, doResetForm: true); // by default
+
+            System.Threading.Tasks.Task findDuplicatesTask = System.Threading.Tasks.Task.Run(() =>
+            {
+                GetAndViewDuplicatesByHash(dataLocations, hideIsolatedDuplicates: true, doResetForm: true); // by default
+                _windowsManager.MainViewModel.SetBusyState(isBusy: false);
+            });
         }
 
         /// <remarks>Это событие вызывается с формы <c>DuplicateReportForm</c> значит, саму форму перезапускать не надо.</remarks>
         private void ViewDuplicatesByHashRequested(Boolean hideIsolatedDuplicates)
         {
-            GetAndViewDuplicatesByHash(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates, doResetForm: false);
+            _windowsManager.MainViewModel.SetBusyState(isBusy: true);
+
+            System.Threading.Tasks.Task getAndViewDuplicatesTask = System.Threading.Tasks.Task.Run(() =>
+            {
+                GetAndViewDuplicatesByHash(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates, doResetForm: false);
+                _windowsManager.MainViewModel.SetBusyState(isBusy: false);
+            });
         }
 
         private void ViewDuplicatesByFoldersRequested(Boolean hideIsolatedDuplicates)
         {
-            GetAndViewDuplicatesByFolders(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates);
+            _windowsManager.MainViewModel.SetBusyState(isBusy: true);
+
+            System.Threading.Tasks.Task getAndViewDuplicatesTask = System.Threading.Tasks.Task.Run(() =>
+            {
+                GetAndViewDuplicatesByFolders(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates);
+                _windowsManager.MainViewModel.SetBusyState(isBusy: false);
+            });
         }
 
         private void GetAndViewDuplicatesByHash(IReadOnlyCollection<DataLocation> dataLocations, Boolean hideIsolatedDuplicates, Boolean doResetForm)
