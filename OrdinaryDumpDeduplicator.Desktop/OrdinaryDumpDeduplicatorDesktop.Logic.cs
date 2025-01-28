@@ -12,6 +12,8 @@ namespace OrdinaryDumpDeduplicator.Desktop
         private DuplicateReport _currentDuplicateReport; // We show only one DuplicateReportForm at a time.
         private DuplicatesViewController _currentDuplicatesViewController;
 
+        private Boolean _isOrdinaryDumpDeduplicatorBusy = false;
+
         #endregion
 
         #region Private methods
@@ -43,83 +45,115 @@ namespace OrdinaryDumpDeduplicator.Desktop
 
         private void RescanRequested(ItemToView dataLocationItem)
         {
-            DataLocation dataLocation = dataLocationItem.WrappedObject as DataLocation;
+            if (_isOrdinaryDumpDeduplicatorBusy)
+            {
+                return; // Just ignoring request.
+            }
 
             IMainViewModel mainViewModel = _windowsManager.MainViewModel;
+            SetOrdinaryDumpDeduplicatorBusy();
             mainViewModel.AddSessionMessage("Scan started.");
-            mainViewModel.SetBusyState(isBusy: true);
-            DateTime now = DateTime.Now;
+            DateTime jobStartTime = DateTime.Now;
+
+            DataLocation dataLocation = dataLocationItem.WrappedObject as DataLocation;
 
             System.Threading.Tasks.Task<DataLocation> doInspectionTask = _ordinaryDumpDeduplicator.DoInspection(dataLocation);
-            doInspectionTask.ContinueWith(inspectionTask =>
+            System.Threading.Tasks.Task duplicatesViewTask = doInspectionTask.ContinueWith(inspectionTask =>
             {
+                if (inspectionTask.IsFaulted)
+                {
+                    RethrowFirstException(inspectionTask.Exception);
+                }
+
                 DataLocation currentDataLocation = inspectionTask.Result;
 
-                TimeSpan timeSpent = DateTime.Now.Subtract(now);
-                String timeSpentString = TimeSpanToString(timeSpent);
+                String timeSpentString = TimeSpentToString(jobStartTime);
                 mainViewModel.AddSessionMessage($"Scan finished in {timeSpentString}.");
-
                 GetAndViewDuplicatesByHash(new[] { currentDataLocation }, hideIsolatedDuplicates: true, doResetForm: true); // by default
-                mainViewModel.SetBusyState(isBusy: false);
             });
+
+            duplicatesViewTask.ContinueWith(ProcessJobCompletion);
         }
 
         private void FindDuplicatesRequested(IReadOnlyCollection<ItemToView> dataLocationItems)
         {
-            _windowsManager.MainViewModel.SetBusyState(isBusy: true);
+            if (_isOrdinaryDumpDeduplicatorBusy)
+            {
+                return; // Just ignoring request.
+            }
+
+            SetOrdinaryDumpDeduplicatorBusy();
+            DateTime jobStartTime = DateTime.Now;
 
             DataLocation[] dataLocations = GetDataLocations(dataLocationItems);
 
             System.Threading.Tasks.Task findDuplicatesTask = System.Threading.Tasks.Task.Run(() =>
             {
                 GetAndViewDuplicatesByHash(dataLocations, hideIsolatedDuplicates: true, doResetForm: true); // by default
-                _windowsManager.MainViewModel.SetBusyState(isBusy: false);
+
+                String timeSpentString = TimeSpentToString(jobStartTime);
+                _windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
             });
+
+            findDuplicatesTask.ContinueWith(ProcessJobCompletion);
         }
 
         /// <remarks>Это событие вызывается с формы <c>DuplicateReportForm</c> значит, саму форму перезапускать не надо.</remarks>
         private void ViewDuplicatesByHashRequested(Boolean hideIsolatedDuplicates)
         {
-            _windowsManager.MainViewModel.SetBusyState(isBusy: true);
+            if (_isOrdinaryDumpDeduplicatorBusy)
+            {
+                return; // Just ignoring request.
+            }
+
+            SetOrdinaryDumpDeduplicatorBusy();
+            DateTime jobStartTime = DateTime.Now;
 
             System.Threading.Tasks.Task getAndViewDuplicatesTask = System.Threading.Tasks.Task.Run(() =>
             {
                 GetAndViewDuplicatesByHash(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates, doResetForm: false);
-                _windowsManager.MainViewModel.SetBusyState(isBusy: false);
+
+                String timeSpentString = TimeSpentToString(jobStartTime);
+                _windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
             });
+
+            getAndViewDuplicatesTask.ContinueWith(ProcessJobCompletion);
         }
 
         private void ViewDuplicatesByFoldersRequested(Boolean hideIsolatedDuplicates)
         {
-            _windowsManager.MainViewModel.SetBusyState(isBusy: true);
+            if (_isOrdinaryDumpDeduplicatorBusy)
+            {
+                return; // Just ignoring request.
+            }
+
+            SetOrdinaryDumpDeduplicatorBusy();
+            DateTime jobStartTime = DateTime.Now;
 
             System.Threading.Tasks.Task getAndViewDuplicatesTask = System.Threading.Tasks.Task.Run(() =>
             {
                 GetAndViewDuplicatesByFolders(_currentDuplicateReport.DataLocations, hideIsolatedDuplicates);
-                _windowsManager.MainViewModel.SetBusyState(isBusy: false);
+
+                String timeSpentString = TimeSpentToString(jobStartTime);
+                _windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
             });
+
+            getAndViewDuplicatesTask.ContinueWith(ProcessJobCompletion);
         }
 
         private void GetAndViewDuplicatesByHash(IReadOnlyCollection<DataLocation> dataLocations, Boolean hideIsolatedDuplicates, Boolean doResetForm)
         {
             if (dataLocations != null && dataLocations.Count > 0)
             {
-                DateTime now = DateTime.Now;
-
                 System.Threading.Tasks.Task<DuplicateReport> getDuplicatesTask = _ordinaryDumpDeduplicator.GetDuplicatesFound(dataLocations);
-                getDuplicatesTask.ContinueWith(duplicateReportTask =>
-                {
-                    DuplicateReport duplicateReport = duplicateReportTask.Result;
-                    _currentDuplicateReport = duplicateReport;
+                getDuplicatesTask.Wait();
 
-                    TimeSpan timeSpent = DateTime.Now.Subtract(now);
-                    String timeSpentString = TimeSpanToString(timeSpent);
-                    //_windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
+                DuplicateReport duplicateReport = getDuplicatesTask.Result;
+                _currentDuplicateReport = duplicateReport;
 
-                    _currentDuplicatesViewController = new DuplicatesViewController(_ordinaryDumpDeduplicator, duplicateReport, _windowsManager.DuplicatesViewModel);
-                    _currentDuplicatesViewController.ViewDuplicatesByHash(hideIsolatedDuplicates, doResetForm);
-                    _windowsManager.ShowDuplicatesForm();
-                });
+                _currentDuplicatesViewController = new DuplicatesViewController(_ordinaryDumpDeduplicator, duplicateReport, _windowsManager.DuplicatesViewModel);
+                _currentDuplicatesViewController.ViewDuplicatesByHash(hideIsolatedDuplicates, doResetForm);
+                _windowsManager.ShowDuplicatesForm();
             }
         }
 
@@ -127,22 +161,15 @@ namespace OrdinaryDumpDeduplicator.Desktop
         {
             if (dataLocations != null && dataLocations.Count > 0)
             {
-                DateTime now = DateTime.Now;
-
                 System.Threading.Tasks.Task<DuplicateReport> getDuplicatesTask = _ordinaryDumpDeduplicator.GetDuplicatesFound(dataLocations);
-                getDuplicatesTask.ContinueWith(duplicateReportTask =>
-                {
-                    DuplicateReport duplicateReport = duplicateReportTask.Result;
-                    _currentDuplicateReport = duplicateReport;
+                getDuplicatesTask.Wait();
 
-                    TimeSpan timeSpent = DateTime.Now.Subtract(now);
-                    String timeSpentString = TimeSpanToString(timeSpent);
-                    _windowsManager.MainViewModel.AddSessionMessage($"Duplicates search completed in {timeSpentString}.");
+                DuplicateReport duplicateReport = getDuplicatesTask.Result;
+                _currentDuplicateReport = duplicateReport;
 
-                    _currentDuplicatesViewController = new DuplicatesViewController(_ordinaryDumpDeduplicator, duplicateReport, _windowsManager.DuplicatesViewModel);
-                    _currentDuplicatesViewController.ViewDuplicatesByFolders(hideIsolatedDuplicates);
-                    _windowsManager.ShowDuplicatesForm();
-                });
+                _currentDuplicatesViewController = new DuplicatesViewController(_ordinaryDumpDeduplicator, duplicateReport, _windowsManager.DuplicatesViewModel);
+                _currentDuplicatesViewController.ViewDuplicatesByFolders(hideIsolatedDuplicates);
+                _windowsManager.ShowDuplicatesForm();
             }
         }
 
@@ -167,6 +194,23 @@ namespace OrdinaryDumpDeduplicator.Desktop
             _windowsManager.CloseAllAdditionalForms();
 
             return allowedToClose;
+        }
+
+        private void SetOrdinaryDumpDeduplicatorBusy()
+        {
+            _isOrdinaryDumpDeduplicatorBusy = true;
+            _windowsManager.MainViewModel.SetBusyState(isBusy: true);
+        }
+
+        private void ProcessJobCompletion(System.Threading.Tasks.Task task)
+        {
+            _windowsManager.MainViewModel.SetBusyState(isBusy: false);
+            _isOrdinaryDumpDeduplicatorBusy = false;
+
+            if (task.IsFaulted)
+            {
+                _windowsManager.MainViewModel.AddSessionMessage($"Job faulteded with {task.Exception.ToString()}: {task.Exception.Message}.");
+            }
         }
 
         #endregion
@@ -206,6 +250,26 @@ namespace OrdinaryDumpDeduplicator.Desktop
             String dataLocationString = dataLocation.Path;
             var itemToView = new ItemToView(dataLocation, typeof(DataLocation), childItems: new ItemToView[] { }, dataLocationString, System.Drawing.Color.Black, isMoveable: false, isDeletable: true, isHidden: false);
             return itemToView;
+        }
+
+        private static void RethrowFirstException(Exception exception)
+        {
+            AggregateException aggregateException = exception as AggregateException;
+            if (aggregateException != null)
+            {
+                throw aggregateException.InnerException;
+            }
+            else
+            {
+                throw exception;
+            }
+        }
+
+        private static String TimeSpentToString(DateTime startTime)
+        {
+            TimeSpan timeSpent = DateTime.Now.Subtract(startTime);
+            String timeSpentString = TimeSpanToString(timeSpent);
+            return timeSpentString;
         }
 
         private static String TimeSpanToString(TimeSpan timeSpan)
